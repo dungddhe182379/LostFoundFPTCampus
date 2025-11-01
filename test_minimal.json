@@ -1,0 +1,8 @@
+{
+  "uuid": "test-minimal-uuid",
+  "userId": 9,
+  "title": "Test minimal",
+  "description": "Test description",
+  "category": "wallet",
+  "status": "lost"
+}

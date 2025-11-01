@@ -30,7 +30,7 @@ import com.fptcampus.lostfoundfptcampus.model.dao.UserDao;
         KarmaLog.class,
         Notification.class
     },
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters({Converters.class})

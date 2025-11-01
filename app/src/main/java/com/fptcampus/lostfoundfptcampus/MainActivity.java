@@ -13,9 +13,11 @@ import com.fptcampus.lostfoundfptcampus.controller.ListItemActivity;
 import com.fptcampus.lostfoundfptcampus.controller.LoginActivity;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
+import com.fptcampus.lostfoundfptcampus.util.SyncService;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.snackbar.Snackbar;
 
 public class MainActivity extends AppCompatActivity {
     private MaterialToolbar toolbar;
@@ -24,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton btnLogout;
 
     private SharedPreferencesManager prefsManager;
+    private SyncService syncService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +47,10 @@ public class MainActivity extends AppCompatActivity {
         bindingView();
         bindingAction();
         loadUserInfo();
+        
+        // Initialize sync service
+        syncService = new SyncService(this);
+        checkAndSyncOfflineItems();
     }
 
     private void bindingView() {
@@ -106,9 +113,77 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+    private void checkAndSyncOfflineItems() {
+        // Check network first
+        if (!com.fptcampus.lostfoundfptcampus.util.NetworkUtil.isNetworkAvailable(this)) {
+            return; // Don't show sync prompt if no network
+        }
+        
+        syncService.hasUnsyncedItems((hasUnsynced, count) -> {
+            if (hasUnsynced) {
+                runOnUiThread(() -> {
+                    Snackbar snackbar = Snackbar.make(
+                        findViewById(android.R.id.content),
+                        "Có " + count + " bài đăng chưa đồng bộ",
+                        Snackbar.LENGTH_LONG
+                    );
+                    snackbar.setAction("Đồng bộ ngay", v -> syncOfflineItems());
+                    snackbar.show();
+                });
+            }
+        });
+    }
+    
+    private void syncOfflineItems() {
+        View rootView = findViewById(android.R.id.content);
+        
+        // Check network again before sync
+        if (!com.fptcampus.lostfoundfptcampus.util.NetworkUtil.isNetworkAvailable(this)) {
+            Snackbar.make(rootView, "Không có kết nối mạng. Vui lòng kiểm tra lại.", 
+                Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        
+        Snackbar.make(rootView, "Đang đồng bộ...", Snackbar.LENGTH_SHORT).show();
+        
+        syncService.syncUnsyncedItems(new SyncService.SyncCallback() {
+            @Override
+            public void onSyncComplete(int successCount, int failCount) {
+                runOnUiThread(() -> {
+                    String message;
+                    if (successCount > 0 && failCount == 0) {
+                        message = "Đã đồng bộ thành công " + successCount + " bài đăng!";
+                    } else if (successCount > 0 && failCount > 0) {
+                        message = "Đồng bộ: " + successCount + " thành công, " + failCount + " thất bại";
+                    } else {
+                        message = "Đồng bộ thất bại. Vui lòng thử lại sau.";
+                    }
+                    
+                    Snackbar.make(rootView, message, Snackbar.LENGTH_LONG).show();
+                });
+            }
+
+            @Override
+            public void onSyncProgress(String itemTitle) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Đã đồng bộ: " + itemTitle, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         loadUserInfo();
+        checkAndSyncOfflineItems();
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (syncService != null) {
+            syncService.shutdown();
+        }
     }
 }

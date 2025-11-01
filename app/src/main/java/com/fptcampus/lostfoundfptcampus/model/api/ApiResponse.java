@@ -1,20 +1,26 @@
 package com.fptcampus.lostfoundfptcampus.model.api;
 
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 public class ApiResponse<T> {
+    @Expose
     @SerializedName("success")
     private boolean success;
 
+    @Expose
     @SerializedName("message")
     private String message;
 
+    @Expose
     @SerializedName("data")
     private T data;
 
+    @Expose
     @SerializedName("error")
     private String error;
 
+    @Expose
     @SerializedName("timestamp")
     private long timestamp;
 

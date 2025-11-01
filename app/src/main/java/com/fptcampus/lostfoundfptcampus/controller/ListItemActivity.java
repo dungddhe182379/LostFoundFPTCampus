@@ -135,42 +135,145 @@ public class ListItemActivity extends AppCompatActivity {
     }
 
     private void loadItemsFromApi() {
-        Call<ApiResponse<List<LostItem>>> call;
-        
-        if ("all".equals(currentStatus)) {
-            call = ApiClient.getItemApi().getAllItems("Bearer " + prefsManager.getToken());
-        } else {
-            call = ApiClient.getItemApi().getItemsByStatus("Bearer " + prefsManager.getToken(), currentStatus);
-        }
+        // Always load all items from API, filter locally
+        Call<ApiResponse<List<LostItem>>> call = ApiClient.getItemApi()
+                .getAllItems("Bearer " + prefsManager.getToken());
 
         call.enqueue(new Callback<ApiResponse<List<LostItem>>>() {
             @Override
             public void onResponse(Call<ApiResponse<List<LostItem>>> call, Response<ApiResponse<List<LostItem>>> response) {
                 swipeRefresh.setRefreshing(false);
                 
-                if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse<List<LostItem>> apiResponse = response.body();
-                    
-                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                        List<LostItem> items = apiResponse.getData();
-                        adapter.setItems(items);
+                try {
+                    if (response.isSuccessful() && response.body() != null) {
+                        ApiResponse<List<LostItem>> apiResponse = response.body();
                         
-                        // Save to local database
-                        executorService.execute(() -> {
-                            for (LostItem item : items) {
-                                database.lostItemDao().insert(item);
+                        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                            List<LostItem> allItems = apiResponse.getData();
+                            
+                            // Filter based on current status
+                            List<LostItem> filteredItems;
+                            if ("all".equals(currentStatus)) {
+                                filteredItems = allItems;
+                            } else {
+                                filteredItems = new java.util.ArrayList<>();
+                                for (LostItem item : allItems) {
+                                    if (currentStatus.equals(item.getStatus())) {
+                                        filteredItems.add(item);
+                                    }
+                                }
                             }
+                            
+                            adapter.setItems(filteredItems);
+                            
+                            // Save all items to local database for offline access
+                            executorService.execute(() -> {
+                                for (LostItem item : allItems) {
+                                    item.setSynced(true); // Mark as synced since from server
+                                    database.lostItemDao().insert(item);
+                                }
+                                
+                                // Sync unsynced local items to server
+                                syncUnsyncedItems();
+                            });
+                        } else {
+                            // API error, show from cache
+                            runOnUiThread(() -> {
+                                Toast.makeText(ListItemActivity.this, 
+                                    "Lỗi: " + (apiResponse.getError() != null ? apiResponse.getError() : "Không có dữ liệu"), 
+                                    Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    } else {
+                        // Response not successful, show cached data
+                        runOnUiThread(() -> {
+                            Toast.makeText(ListItemActivity.this, 
+                                "Hiển thị dữ liệu offline (Lỗi: " + response.code() + ")", 
+                                Toast.LENGTH_SHORT).show();
                         });
                     }
+                } catch (Exception e) {
+                    swipeRefresh.setRefreshing(false);
+                    runOnUiThread(() -> {
+                        Toast.makeText(ListItemActivity.this, 
+                            "Lỗi xử lý dữ liệu: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                    });
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<LostItem>>> call, Throwable t) {
                 swipeRefresh.setRefreshing(false);
-                Toast.makeText(ListItemActivity.this, "Lỗi tải dữ liệu: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                // Network error, show cached data
+                runOnUiThread(() -> {
+                    Toast.makeText(ListItemActivity.this, 
+                        "Chế độ offline: " + t.getMessage(), 
+                        Toast.LENGTH_SHORT).show();
+                });
             }
         });
+    }
+    
+    private void syncUnsyncedItems() {
+        // Run in background thread (already in executor)
+        List<LostItem> unsyncedItems = database.lostItemDao().getUnsyncedItems();
+        
+        for (LostItem item : unsyncedItems) {
+            // Create DTO - Server generates uuid and userId from token
+            com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest request = 
+                new com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest(
+                    item.getTitle(),
+                    item.getDescription(),
+                    item.getCategory(),
+                    item.getStatus(),
+                    item.getLatitude(),
+                    item.getLongitude(),
+                    item.getImageUrl()
+                );
+            
+            // Sync each unsynced item to server
+            Call<ApiResponse<LostItem>> call = ApiClient.getItemApi().createItem(
+                "Bearer " + prefsManager.getToken(),
+                request
+            );
+            
+            call.enqueue(new Callback<ApiResponse<LostItem>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        ApiResponse<LostItem> apiResponse = response.body();
+                        
+                        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                            // Server accepted item, update local
+                            executorService.execute(() -> {
+                                LostItem serverItem = apiResponse.getData();
+                                
+                                // Delete old local item
+                                database.lostItemDao().delete(item);
+                                
+                                // Insert server item with correct ID
+                                serverItem.setSynced(true);
+                                database.lostItemDao().insert(serverItem);
+                                
+                                runOnUiThread(() -> {
+                                    Toast.makeText(ListItemActivity.this, 
+                                        "Đã đồng bộ: " + item.getTitle(), 
+                                        Toast.LENGTH_SHORT).show();
+                                    // Reload to show updated data
+                                    loadItemsFromLocal();
+                                });
+                            });
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
+                    // Keep in unsynced state, will retry later
+                }
+            });
+        }
     }
 
     private void onSwipeRefresh() {

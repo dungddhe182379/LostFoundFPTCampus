@@ -39,16 +39,18 @@ public class ApiClient {
     // Get Retrofit instance
     public static Retrofit getClient() {
         if (retrofit == null) {
-            // Gson configuration
+            // Gson configuration with @Expose annotation support
             Gson gson = new GsonBuilder()
                 .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .excludeFieldsWithoutExposeAnnotation() // Only serialize fields with @Expose
+                // Don't serialize nulls - omit null fields from JSON
                 .setLenient()
                 .create();
 
             // OkHttp client with interceptors
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .addInterceptor(getLoggingInterceptor()) // Log first
                 .addInterceptor(new AuthInterceptor())
-                .addInterceptor(getLoggingInterceptor())
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
@@ -83,6 +85,18 @@ public class ApiClient {
                 return chain.proceed(originalRequest);
             }
 
+            // Skip if Authorization header already exists (from @Header annotation)
+            if (originalRequest.header("Authorization") != null) {
+                Response response = chain.proceed(originalRequest);
+                
+                // Check if token is invalid/expired (401 Unauthorized)
+                if (response.code() == 401) {
+                    handleUnauthorized();
+                }
+                
+                return response;
+            }
+
             // Get token from SharedPreferences
             String token = getToken();
             
@@ -91,7 +105,14 @@ public class ApiClient {
                 Request newRequest = originalRequest.newBuilder()
                     .addHeader("Authorization", "Bearer " + token)
                     .build();
-                return chain.proceed(newRequest);
+                Response response = chain.proceed(newRequest);
+                
+                // Check if token is invalid/expired (401 Unauthorized)
+                if (response.code() == 401) {
+                    handleUnauthorized();
+                }
+                
+                return response;
             }
 
             return chain.proceed(originalRequest);
@@ -101,6 +122,29 @@ public class ApiClient {
             if (appContext == null) return null;
             SharedPreferences prefs = appContext.getSharedPreferences("LostFoundPrefs", Context.MODE_PRIVATE);
             return prefs.getString("jwt_token", null);
+        }
+        
+        private void handleUnauthorized() {
+            if (appContext == null) return;
+            
+            // Clear all user data
+            SharedPreferences prefs = appContext.getSharedPreferences("LostFoundPrefs", Context.MODE_PRIVATE);
+            prefs.edit().clear().apply();
+            
+            // Navigate to login screen
+            android.content.Intent intent = new android.content.Intent(appContext, 
+                com.fptcampus.lostfoundfptcampus.controller.LoginActivity.class);
+            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | 
+                           android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            appContext.startActivity(intent);
+            
+            // Show notification
+            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+            mainHandler.post(() -> {
+                android.widget.Toast.makeText(appContext, 
+                    "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 
+                    android.widget.Toast.LENGTH_LONG).show();
+            });
         }
     }
 

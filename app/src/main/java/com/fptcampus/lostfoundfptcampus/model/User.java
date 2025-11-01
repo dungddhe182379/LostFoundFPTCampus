@@ -5,38 +5,54 @@ import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Date;
 
 @Entity(tableName = "users", indices = {@Index(value = "email", unique = true)})
 public class User {
     @PrimaryKey(autoGenerate = true)
+    @Expose
     private long id;
 
     @ColumnInfo(name = "uuid")
+    @Expose
     private String uuid;
 
     @ColumnInfo(name = "name")
+    @Expose
     private String name;
 
     @ColumnInfo(name = "email")
+    @Expose
     private String email;
 
     @ColumnInfo(name = "password_hash")
-    private String passwordHash;
+    @SerializedName("passwordHash")
+    private String passwordHash; // Don't expose password
 
     @ColumnInfo(name = "phone")
+    @Expose
     private String phone;
 
     @ColumnInfo(name = "avatar_url")
+    @Expose
+    @SerializedName("avatarUrl")
     private String avatarUrl;
 
     @ColumnInfo(name = "karma")
+    @Expose
     private int karma;
 
     @ColumnInfo(name = "created_at")
+    @Expose
+    @SerializedName("createdAt")
     private Date createdAt;
 
     @ColumnInfo(name = "updated_at")
+    @Expose
+    @SerializedName("updatedAt")
     private Date updatedAt;
 
     // Constructors

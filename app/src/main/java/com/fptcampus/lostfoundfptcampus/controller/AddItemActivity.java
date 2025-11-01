@@ -181,15 +181,37 @@ public class AddItemActivity extends AppCompatActivity {
             long localId = database.lostItemDao().insert(item);
             item.setId(localId);
 
-            // Then sync to server
-            runOnUiThread(() -> syncToServer(item));
+            // Check network before sync
+            runOnUiThread(() -> {
+                if (com.fptcampus.lostfoundfptcampus.util.NetworkUtil.isNetworkAvailable(this)) {
+                    syncToServer(item);
+                } else {
+                    showLoading(false);
+                    Toast.makeText(this, 
+                        "✓ Đã lưu offline. Sẽ tự động đồng bộ khi có mạng.", 
+                        Toast.LENGTH_LONG).show();
+                    finish();
+                }
+            });
         });
     }
 
     private void syncToServer(LostItem item) {
+        // Create DTO - Server generates uuid and userId from token
+        com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest request = 
+            new com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest(
+                item.getTitle(),
+                item.getDescription(),
+                item.getCategory(),
+                item.getStatus(),
+                item.getLatitude(),
+                item.getLongitude(),
+                item.getImageUrl()
+            );
+        
         Call<ApiResponse<LostItem>> call = ApiClient.getItemApi().createItem(
             "Bearer " + prefsManager.getToken(),
-            item
+            request
         );
 
         call.enqueue(new Callback<ApiResponse<LostItem>>() {
@@ -200,10 +222,17 @@ public class AddItemActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     ApiResponse<LostItem> apiResponse = response.body();
 
-                    if (apiResponse.isSuccess()) {
-                        // Update local item as synced
+                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                        LostItem serverItem = apiResponse.getData();
+                        
+                        // Replace local item with server item
                         executorService.execute(() -> {
-                            database.lostItemDao().markAsSynced(item.getId());
+                            // Delete temporary local item
+                            database.lostItemDao().delete(item);
+                            
+                            // Insert server item with real ID
+                            serverItem.setSynced(true);
+                            database.lostItemDao().insert(serverItem);
                         });
 
                         Toast.makeText(AddItemActivity.this, "Đăng bài thành công!", Toast.LENGTH_SHORT).show();

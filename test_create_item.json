@@ -1,0 +1,11 @@
+{
+  "uuid": "test-offline-uuid-12345",
+  "userId": 9,
+  "title": "Test offline item",
+  "description": "Mat do on can tin",
+  "category": "wallet",
+  "status": "lost",
+  "latitude": 10.762622,
+  "longitude": 106.682223,
+  "synced": false
+}
