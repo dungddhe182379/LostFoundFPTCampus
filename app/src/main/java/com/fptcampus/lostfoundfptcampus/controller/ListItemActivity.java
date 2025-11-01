@@ -13,6 +13,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.controller.adapter.ItemAdapter;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
+import com.fptcampus.lostfoundfptcampus.model.User;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
@@ -21,7 +22,9 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -135,6 +138,17 @@ public class ListItemActivity extends AppCompatActivity {
     }
 
     private void loadItemsFromApi() {
+        // Check network first
+        if (!com.fptcampus.lostfoundfptcampus.util.NetworkUtil.isNetworkAvailable(this)) {
+            swipeRefresh.setRefreshing(false);
+            com.fptcampus.lostfoundfptcampus.util.ErrorDialogHelper.showError(
+                this,
+                "Không có kết nối mạng",
+                "Vui lòng kiểm tra kết nối internet và thử lại."
+            );
+            return;
+        }
+        
         // Always load all items from API, filter locally
         Call<ApiResponse<List<LostItem>>> call = ApiClient.getItemApi()
                 .getAllItems("Bearer " + prefsManager.getToken());

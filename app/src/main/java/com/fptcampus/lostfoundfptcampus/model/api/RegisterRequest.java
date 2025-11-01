@@ -1,17 +1,22 @@
 package com.fptcampus.lostfoundfptcampus.model.api;
 
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 public class RegisterRequest {
+    @Expose
     @SerializedName("name")
     private String name;
 
+    @Expose
     @SerializedName("email")
     private String email;
 
+    @Expose
     @SerializedName("password")
     private String password;
 
+    @Expose
     @SerializedName("phone")
     private String phone;
 

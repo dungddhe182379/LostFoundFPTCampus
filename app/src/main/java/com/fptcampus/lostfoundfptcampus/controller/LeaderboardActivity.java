@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -12,15 +13,26 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.controller.adapter.LeaderboardAdapter;
+import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.User;
+import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
+import com.fptcampus.lostfoundfptcampus.util.ApiClient;
 import com.fptcampus.lostfoundfptcampus.util.ErrorDialogHelper;
+import com.fptcampus.lostfoundfptcampus.util.NetworkUtil;
+import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * Leaderboard Activity - Display karma ranking
@@ -38,6 +50,8 @@ public class LeaderboardActivity extends AppCompatActivity {
     private LeaderboardAdapter adapter;
     private ExecutorService executorService;
     private List<User> userList;
+    private SharedPreferencesManager prefsManager;
+    private AppDatabase database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +60,8 @@ public class LeaderboardActivity extends AppCompatActivity {
 
         executorService = Executors.newSingleThreadExecutor();
         userList = new ArrayList<>();
+        prefsManager = new SharedPreferencesManager(this);
+        database = AppDatabase.getInstance(this);
 
         bindingView();
         bindingAction();
@@ -78,28 +94,228 @@ public class LeaderboardActivity extends AppCompatActivity {
     }
 
     private void loadLeaderboard() {
+        // Check network first
+        if (!NetworkUtil.isNetworkAvailable(this)) {
+            showLoading(false);
+            ErrorDialogHelper.showError(
+                this,
+                "Không có kết nối mạng",
+                "Vui lòng kiểm tra kết nối internet và thử lại."
+            );
+            // Try to load from cache
+            loadFromCache();
+            return;
+        }
+
         showLoading(true);
+        
+        // Step 1: Load all items to get unique user IDs
+        Call<ApiResponse<List<LostItem>>> call = ApiClient.getItemApi()
+                .getAllItems("Bearer " + prefsManager.getToken());
 
+        call.enqueue(new Callback<ApiResponse<List<LostItem>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<LostItem>>> call, Response<ApiResponse<List<LostItem>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse<List<LostItem>> apiResponse = response.body();
+                    
+                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                        List<LostItem> items = apiResponse.getData();
+                        android.util.Log.d("LeaderboardActivity", "Loaded " + items.size() + " items from API");
+                        
+                        // Step 2: Extract unique user IDs
+                        Set<Long> userIds = new HashSet<>();
+                        for (LostItem item : items) {
+                            if (item.getUserId() > 0) {
+                                userIds.add(item.getUserId());
+                            }
+                        }
+                        
+                        android.util.Log.d("LeaderboardActivity", "Found " + userIds.size() + " unique users");
+                        
+                        // Step 3: Fetch each user's details
+                        fetchUsersDetails(new ArrayList<>(userIds));
+                    } else {
+                        runOnUiThread(() -> {
+                            showLoading(false);
+                            Toast.makeText(LeaderboardActivity.this, 
+                                "Lỗi: " + (apiResponse.getError() != null ? apiResponse.getError() : "Không có dữ liệu"), 
+                                Toast.LENGTH_SHORT).show();
+                            loadFromCache();
+                        });
+                    }
+                } else {
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        Toast.makeText(LeaderboardActivity.this, 
+                            "Lỗi server: " + response.code(), 
+                            Toast.LENGTH_SHORT).show();
+                        loadFromCache();
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<LostItem>>> call, Throwable t) {
+                runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(LeaderboardActivity.this, 
+                        "Lỗi kết nối: " + t.getMessage(), 
+                        Toast.LENGTH_SHORT).show();
+                    loadFromCache();
+                });
+            }
+        });
+    }
+    
+    private void fetchUsersDetails(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            runOnUiThread(() -> {
+                showLoading(false);
+                Toast.makeText(this, "Không tìm thấy người dùng nào", Toast.LENGTH_SHORT).show();
+            });
+            return;
+        }
+        
+        List<User> fetchedUsers = new ArrayList<>();
+        final int[] completedRequests = {0};
+        final int totalRequests = userIds.size();
+        
+        for (Long userId : userIds) {
+            Call<ApiResponse<User>> call = ApiClient.getUserApi()
+                    .getUserById("Bearer " + prefsManager.getToken(), userId);
+            
+            call.enqueue(new Callback<ApiResponse<User>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<User>> call, Response<ApiResponse<User>> response) {
+                    synchronized (fetchedUsers) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            ApiResponse<User> apiResponse = response.body();
+                            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                User user = apiResponse.getData();
+                                fetchedUsers.add(user);
+                                android.util.Log.d("LeaderboardActivity", "Fetched user: " + user.getName() + " - Karma: " + user.getKarma());
+                                
+                                // Cache user to database
+                                executorService.execute(() -> database.userDao().insert(user));
+                            }
+                        }
+                        
+                        completedRequests[0]++;
+                        
+                        // When all requests complete
+                        if (completedRequests[0] == totalRequests) {
+                            processAndDisplayUsers(fetchedUsers);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<User>> call, Throwable t) {
+                    synchronized (fetchedUsers) {
+                        completedRequests[0]++;
+                        
+                        if (completedRequests[0] == totalRequests) {
+                            processAndDisplayUsers(fetchedUsers);
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    private void processAndDisplayUsers(List<User> users) {
+        android.util.Log.d("LeaderboardActivity", "Processing " + users.size() + " users");
+        
+        // Sort by karma (highest first)
+        java.util.Collections.sort(users, (u1, u2) -> {
+            return Integer.compare(u2.getKarma(), u1.getKarma());
+        });
+        
+        runOnUiThread(() -> {
+            showLoading(false);
+            
+            if (!users.isEmpty()) {
+                displayLeaderboard(users);
+            } else {
+                Toast.makeText(this, "Không có dữ liệu xếp hạng", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void loadFromCache() {
+        // Load from local database as fallback
         executorService.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(this);
-            List<User> users = db.userDao().getTopKarmaUsers(50); // Get top 50
+            List<User> users = database.userDao().getTopKarmaUsers(50); // Get top 50
+            
+            android.util.Log.d("LeaderboardActivity", "Loaded " + (users != null ? users.size() : 0) + " users from DB");
+            
+            // Debug: Print all users
+            if (users != null) {
+                for (User u : users) {
+                    android.util.Log.d("LeaderboardActivity", "User: " + u.getName() + " - Karma: " + u.getKarma());
+                }
+            }
 
+            // Ensure users list is mutable
+            if (users == null) {
+                users = new java.util.ArrayList<>();
+            } else {
+                users = new java.util.ArrayList<>(users); // Create mutable copy
+            }
+
+            // Add current user if not in list
+            com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager prefsManager = 
+                new com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager(this);
+            
+            if (prefsManager.isLoggedIn()) {
+                User currentUser = new User();
+                currentUser.setId(prefsManager.getUserId());
+                currentUser.setName(prefsManager.getUserName());
+                currentUser.setEmail(prefsManager.getUserEmail());
+                currentUser.setKarma(prefsManager.getUserKarma());
+                
+                android.util.Log.d("LeaderboardActivity", "Current user: " + currentUser.getName() + " - Karma: " + currentUser.getKarma());
+                
+                // Check if current user already in list
+                boolean userExists = false;
+                for (User u : users) {
+                    if (u.getId() == currentUser.getId()) {
+                        userExists = true;
+                        // Update karma if changed
+                        u.setKarma(currentUser.getKarma());
+                        android.util.Log.d("LeaderboardActivity", "Updated existing user karma");
+                        break;
+                    }
+                }
+                
+                if (!userExists && currentUser.getId() > 0) {
+                    users.add(currentUser);
+                    android.util.Log.d("LeaderboardActivity", "Added current user to list");
+                }
+            }
+            
+            // Sort by karma (highest first)
+            java.util.Collections.sort(users, (u1, u2) -> {
+                return Integer.compare(u2.getKarma(), u1.getKarma());
+            });
+            
+            android.util.Log.d("LeaderboardActivity", "Final sorted list size: " + users.size());
+
+            List<User> finalUsers = users;
             runOnUiThread(() -> {
                 showLoading(false);
                 
-                List<User> finalUsers = users;
                 if (finalUsers != null && !finalUsers.isEmpty()) {
                     displayLeaderboard(finalUsers);
                 } else {
                     // Generate sample data for demo
+                    android.util.Log.d("LeaderboardActivity", "Using sample data");
                     List<User> sampleUsers = generateSampleData();
                     displayLeaderboard(sampleUsers);
                 }
             });
         });
-
-        // TODO: In production, sync with API
-        // Call API to get real-time leaderboard
     }
 
     private void displayLeaderboard(List<User> users) {

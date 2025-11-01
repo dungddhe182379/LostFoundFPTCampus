@@ -46,8 +46,8 @@ import retrofit2.Response;
  */
 public class MapActivity extends AppCompatActivity {
     private static final int REQUEST_LOCATION_PERMISSION = 100;
-    private static final double FPT_LAT = 10.762622; // FPT HCM coordinates
-    private static final double FPT_LNG = 106.682223;
+    private static final double FPT_LAT = 21.0135; // FPT hola
+    private static final double FPT_LNG = 105.5266;
 
     private MaterialToolbar toolbar;
     private MapView mapView;
@@ -146,6 +146,16 @@ public class MapActivity extends AppCompatActivity {
         // Then sync from API
         String token = prefsManager.getToken();
         if (token != null && !token.isEmpty()) {
+            // Check network before API call
+            if (!com.fptcampus.lostfoundfptcampus.util.NetworkUtil.isNetworkAvailable(this)) {
+                runOnUiThread(() -> {
+                    android.widget.Toast.makeText(this, 
+                        "Không có mạng - Hiển thị dữ liệu offline", 
+                        android.widget.Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+            
             Call<ApiResponse<List<LostItem>>> call = ApiClient.getItemApi()
                     .getAllItems("Bearer " + token);
 
