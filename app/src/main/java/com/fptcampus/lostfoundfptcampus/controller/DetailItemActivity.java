@@ -103,6 +103,8 @@ public class DetailItemActivity extends AppCompatActivity {
             case "returned":
                 tvStatus.setText("ĐÃ TRẢ");
                 tvStatus.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
+                // Ẩn nút tạo QR code vì đã trả rồi
+                btnGenerateQr.setVisibility(View.GONE);
                 break;
             default:
                 tvStatus.setText("ĐÃ MẤT");
