@@ -2,8 +2,7 @@
 
 ## 🌐 Base URL
 ```
-Production: http://vietsuky.com/Vietsuky2/api/lostfound
-Local:      http://localhost:8080/Vietsuky2/api/lostfound
+Production: http://vietsuky.com/api/lostfound
 ```
 
 ---

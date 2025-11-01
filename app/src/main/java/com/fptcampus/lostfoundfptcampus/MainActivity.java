@@ -79,18 +79,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onCardMapClick(View view) {
-        // TODO: Implement MapActivity
-        Toast.makeText(this, "Chức năng bản đồ đang phát triển", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.MapActivity.class);
+        startActivity(intent);
     }
 
     private void onCardQRClick(View view) {
-        // TODO: Implement QrScanActivity
-        Toast.makeText(this, "Chức năng QR đang phát triển", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.QrScanActivity.class);
+        startActivity(intent);
     }
 
     private void onCardLeaderboardClick(View view) {
-        // TODO: Implement LeaderboardActivity
-        Toast.makeText(this, "Chức năng bảng xếp hạng đang phát triển", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.LeaderboardActivity.class);
+        startActivity(intent);
     }
 
     private void onBtnLogoutClick(View view) {

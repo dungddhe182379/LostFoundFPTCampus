@@ -89,8 +89,16 @@ public class ListItemActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         adapter = new ItemAdapter();
         adapter.setOnItemClickListener(item -> {
-            // TODO: Navigate to detail activity
-            Toast.makeText(this, "Item: " + item.getTitle(), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, DetailItemActivity.class);
+            intent.putExtra("itemId", item.getId());
+            intent.putExtra("title", item.getTitle());
+            intent.putExtra("description", item.getDescription());
+            intent.putExtra("category", item.getCategory());
+            intent.putExtra("status", item.getStatus());
+            intent.putExtra("latitude", item.getLatitude() != null ? item.getLatitude() : 0.0);
+            intent.putExtra("longitude", item.getLongitude() != null ? item.getLongitude() : 0.0);
+            intent.putExtra("createdAt", item.getCreatedAt() != null ? item.getCreatedAt().getTime() : 0);
+            startActivity(intent);
         });
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));

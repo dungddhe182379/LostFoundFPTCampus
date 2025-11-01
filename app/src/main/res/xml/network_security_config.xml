@@ -8,7 +8,7 @@
     </base-config>
     
     <!-- Domain-specific config for production -->
-    <domain-config cleartextTrafficPermitted="false">
+    <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">vietsuky.com</domain>
         <trust-anchors>
             <certificates src="system" />

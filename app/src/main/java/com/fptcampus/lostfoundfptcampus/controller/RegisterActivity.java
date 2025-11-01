@@ -108,17 +108,35 @@ public class RegisterActivity extends AppCompatActivity {
                         Toast.makeText(RegisterActivity.this, "Đăng ký thành công! Vui lòng đăng nhập.", Toast.LENGTH_SHORT).show();
                         finish(); // Back to login
                     } else {
-                        Toast.makeText(RegisterActivity.this, "Lỗi: " + apiResponse.getError(), Toast.LENGTH_SHORT).show();
+                        String errorMsg = apiResponse.getError();
+                        if (errorMsg == null || errorMsg.isEmpty()) {
+                            errorMsg = "Đăng ký thất bại, vui lòng thử lại";
+                        }
+                        Toast.makeText(RegisterActivity.this, "Lỗi: " + errorMsg, Toast.LENGTH_LONG).show();
                     }
                 } else {
-                    Toast.makeText(RegisterActivity.this, "Đăng ký thất bại: " + response.message(), Toast.LENGTH_SHORT).show();
+                    String errorMsg = "Đăng ký thất bại";
+                    try {
+                        if (response.errorBody() != null) {
+                            errorMsg += ": " + response.errorBody().string();
+                        } else {
+                            errorMsg += ": " + response.code() + " - " + response.message();
+                        }
+                    } catch (Exception e) {
+                        errorMsg += ": " + response.code() + " - " + response.message();
+                    }
+                    Toast.makeText(RegisterActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
                 showLoading(false);
-                Toast.makeText(RegisterActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                String errorMsg = "Lỗi kết nối";
+                if (t.getMessage() != null) {
+                    errorMsg += ": " + t.getMessage();
+                }
+                Toast.makeText(RegisterActivity.this, errorMsg, Toast.LENGTH_LONG).show();
             }
         });
     }

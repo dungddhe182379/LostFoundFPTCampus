@@ -22,8 +22,8 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    // Production URL
-    private static final String BASE_URL = "http://vietsuky.com/";
+    // Production URL (deployed to Tomcat root with HTTPS)
+    private static final String BASE_URL = "https://vietsuky.com/";
     
     // For local testing, uncomment:
     // private static final String BASE_URL = "http://10.0.2.2:8080/";

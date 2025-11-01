@@ -60,7 +60,6 @@ dependencies {
 
     // --- OSMDroid (bản đồ open source) ---
     implementation("org.osmdroid:osmdroid-android:6.1.16")
-    implementation("org.osmdroid:osmbonuspack:6.9.0") // hỗ trợ tìm đường, route, marker mở rộng
 
     // --- ZXing (QR code scanner/generator) ---
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")

@@ -122,17 +122,35 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                         navigateToMain();
                     } else {
-                        Toast.makeText(LoginActivity.this, "Lỗi: " + apiResponse.getError(), Toast.LENGTH_SHORT).show();
+                        String errorMsg = apiResponse.getError();
+                        if (errorMsg == null || errorMsg.isEmpty()) {
+                            errorMsg = "Đăng nhập thất bại, vui lòng kiểm tra email/mật khẩu";
+                        }
+                        Toast.makeText(LoginActivity.this, "Lỗi: " + errorMsg, Toast.LENGTH_LONG).show();
                     }
                 } else {
-                    Toast.makeText(LoginActivity.this, "Đăng nhập thất bại: " + response.message(), Toast.LENGTH_SHORT).show();
+                    String errorMsg = "Đăng nhập thất bại";
+                    try {
+                        if (response.errorBody() != null) {
+                            errorMsg += ": " + response.errorBody().string();
+                        } else {
+                            errorMsg += ": " + response.code() + " - " + response.message();
+                        }
+                    } catch (Exception e) {
+                        errorMsg += ": " + response.code() + " - " + response.message();
+                    }
+                    Toast.makeText(LoginActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
                 showLoading(false);
-                Toast.makeText(LoginActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                String errorMsg = "Lỗi kết nối";
+                if (t.getMessage() != null) {
+                    errorMsg += ": " + t.getMessage();
+                }
+                Toast.makeText(LoginActivity.this, errorMsg, Toast.LENGTH_LONG).show();
             }
         });
     }
