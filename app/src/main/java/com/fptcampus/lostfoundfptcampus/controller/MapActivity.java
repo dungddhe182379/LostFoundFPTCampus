@@ -179,7 +179,7 @@ public class MapActivity extends AppCompatActivity {
         // If specific location provided (từ Detail screen)
         if (title != null && latitude != FPT_LAT && longitude != FPT_LNG) {
             // Zoom GẦN vào vị trí item
-            mapController.setZoom(18.0);
+            mapController.setZoom(21.0);
             GeoPoint itemPoint = new GeoPoint(latitude, longitude);
             mapController.setCenter(itemPoint);
             
@@ -194,11 +194,31 @@ public class MapActivity extends AppCompatActivity {
             tempItem.setImageUrl(intent.getStringExtra("imageUrl"));
             tempItem.setId(intent.getLongExtra("itemId", 0));
             
-            // Add marker
+            // Add marker và lưu reference
             addMarker(tempItem);
             
-            // Auto-show info card như khi click marker
-            showItemInfo(tempItem);
+            // Tìm marker vừa tạo và tự động hiển thị InfoWindow + Card
+            mapView.postDelayed(() -> {
+                // Tìm marker của item này
+                for (org.osmdroid.views.overlay.Overlay overlay : mapView.getOverlays()) {
+                    if (overlay instanceof Marker) {
+                        Marker m = (Marker) overlay;
+                        Object obj = m.getRelatedObject();
+                        if (obj instanceof LostItem) {
+                            LostItem item = (LostItem) obj;
+                            if (item.getTitle().equals(tempItem.getTitle()) && 
+                                item.getLatitude().equals(tempItem.getLatitude())) {
+                                // Tìm thấy marker -> auto show InfoWindow + Card
+                                selectedMarker = m;
+                                m.showInfoWindow();
+                                showItemInfo(tempItem);
+                                cardItemInfo.setVisibility(View.VISIBLE);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }, 300); // Delay 300ms để marker được add vào map trước
         } else {
             // Zoom bình thường cho view tổng quan
             mapController.setZoom(18.0);
@@ -398,18 +418,37 @@ public class MapActivity extends AppCompatActivity {
             // If clicking different marker -> close old, show new
             if (selectedMarker != null && !selectedMarker.equals(clickedMarker)) {
                 // Close old marker's InfoWindow
-                selectedMarker.closeInfoWindow();
+                if (selectedMarker.isInfoWindowShown()) {
+                    selectedMarker.closeInfoWindow();
+                }
                 
                 // Fade out old card description
                 cardItemInfo.animate()
                     .alpha(0f)
-                    .setDuration(150)
+                    .setDuration(200)
                     .withEndAction(() -> {
                         cardItemInfo.setVisibility(View.GONE);
                         
                         // Then show new marker's content
                         selectedMarker = clickedMarker;
-                        showNewMarkerContent(clickedMarker);
+                        
+                        // Get item from new marker
+                        Object relatedObj = clickedMarker.getRelatedObject();
+                        if (relatedObj instanceof LostItem) {
+                            LostItem newItem = (LostItem) relatedObj;
+                            
+                            // Show InfoWindow first
+                            clickedMarker.showInfoWindow();
+                            
+                            // Then fade in card with item info
+                            cardItemInfo.setAlpha(0f);
+                            cardItemInfo.setVisibility(View.VISIBLE);
+                            showItemInfo(newItem);
+                            cardItemInfo.animate()
+                                .alpha(1f)
+                                .setDuration(300)
+                                .start();
+                        }
                     })
                     .start();
             } else {
@@ -442,9 +481,6 @@ public class MapActivity extends AppCompatActivity {
     }
     
     private void showNewMarkerContent(Marker marker) {
-        // Close all InfoWindows first
-        org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(mapView);
-        
         // Get item from marker
         Object relatedObj = marker.getRelatedObject();
         if (!(relatedObj instanceof LostItem)) {
@@ -456,8 +492,16 @@ public class MapActivity extends AppCompatActivity {
         // Show InfoWindow above marker first
         marker.showInfoWindow();
         
-        // Then fade in card description below with animation
-        showItemInfoWithAnimation(item);
+        // Setup card content
+        cardItemInfo.setAlpha(0f);
+        cardItemInfo.setVisibility(View.VISIBLE);
+        showItemInfo(item);
+        
+        // Animate card in
+        cardItemInfo.animate()
+            .alpha(1f)
+            .setDuration(300)
+            .start();
     }
     
     private void showItemInfoWithAnimation(LostItem item) {
