@@ -124,17 +124,19 @@ public class MapActivity extends AppCompatActivity {
 
         mapController = mapView.getController();
 
-        // Add listener để đóng InfoWindow khi click vùng trống
+        // KHÔNG thêm scroll listener để tránh đóng InfoWindow khi map di chuyển
+        // Chỉ đóng InfoWindow khi user chủ động click vào marker khác hoặc map
+        
         mapView.addMapListener(new MapListener() {
             @Override
             public boolean onScroll(ScrollEvent event) {
-                // Đóng info khi scroll map
-                hideItemInfo();
+                // KHÔNG đóng InfoWindow khi scroll - để user tự đóng
                 return false;
             }
 
             @Override
             public boolean onZoom(ZoomEvent event) {
+                // Smooth zoom - không cần action thêm
                 return false;
             }
         });
@@ -143,6 +145,7 @@ public class MapActivity extends AppCompatActivity {
         mapView.setOnTouchListener(new View.OnTouchListener() {
             private float startX, startY;
             private static final float CLICK_THRESHOLD = 10;
+            private long startTime;
             
             @Override
             public boolean onTouch(View v, android.view.MotionEvent event) {
@@ -150,16 +153,26 @@ public class MapActivity extends AppCompatActivity {
                     case android.view.MotionEvent.ACTION_DOWN:
                         startX = event.getX();
                         startY = event.getY();
+                        startTime = System.currentTimeMillis();
                         break;
                     case android.view.MotionEvent.ACTION_UP:
                         float endX = event.getX();
                         float endY = event.getY();
+                        long endTime = System.currentTimeMillis();
                         
-                        // Kiểm tra xem có phải là click (không phải drag)
-                        if (Math.abs(endX - startX) < CLICK_THRESHOLD && 
-                            Math.abs(endY - startY) < CLICK_THRESHOLD) {
-                            // Click vào map (không phải marker) -> đóng info
-                            hideItemInfo();
+                        // Kiểm tra xem có phải là click (không phải drag/scroll)
+                        boolean isClick = Math.abs(endX - startX) < CLICK_THRESHOLD && 
+                                         Math.abs(endY - startY) < CLICK_THRESHOLD &&
+                                         (endTime - startTime) < 200; // Dưới 200ms là click
+                        
+                        if (isClick) {
+                            // Click vào map (không phải marker) -> đóng info với delay để marker listener được xử lý trước
+                            v.postDelayed(() -> {
+                                // Chỉ đóng nếu không có marker nào được click
+                                if (cardItemInfo.getVisibility() == View.VISIBLE) {
+                                    hideItemInfoWithAnimation();
+                                }
+                            }, 100);
                         }
                         break;
                 }
@@ -178,11 +191,6 @@ public class MapActivity extends AppCompatActivity {
 
         // If specific location provided (từ Detail screen)
         if (title != null && latitude != FPT_LAT && longitude != FPT_LNG) {
-            // Zoom GẦN vào vị trí item
-            mapController.setZoom(21.0);
-            GeoPoint itemPoint = new GeoPoint(latitude, longitude);
-            mapController.setCenter(itemPoint);
-            
             // Tạo LostItem tạm từ Intent data
             LostItem tempItem = new LostItem();
             tempItem.setTitle(title);
@@ -197,7 +205,12 @@ public class MapActivity extends AppCompatActivity {
             // Add marker và lưu reference
             addMarker(tempItem);
             
-            // Tìm marker vừa tạo và tự động hiển thị InfoWindow + Card
+            // Smooth animate to item location
+            GeoPoint itemPoint = new GeoPoint(latitude, longitude);
+            mapController.setZoom(17.0); // Start from further out
+            mapController.setCenter(itemPoint);
+            
+            // Tìm marker vừa tạo và tự động hiển thị NGAY (không chờ animation)
             mapView.postDelayed(() -> {
                 // Tìm marker của item này
                 for (org.osmdroid.views.overlay.Overlay overlay : mapView.getOverlays()) {
@@ -208,22 +221,51 @@ public class MapActivity extends AppCompatActivity {
                             LostItem item = (LostItem) obj;
                             if (item.getTitle().equals(tempItem.getTitle()) && 
                                 item.getLatitude().equals(tempItem.getLatitude())) {
-                                // Tìm thấy marker -> auto show InfoWindow + Card
+                                // Tìm thấy marker -> SHOW NGAY InfoWindow + Card (không chờ)
                                 selectedMarker = m;
+                                
+                                // Show InfoWindow IMMEDIATELY
                                 m.showInfoWindow();
-                                showItemInfo(tempItem);
+                                
+                                // Show card IMMEDIATELY với fade in
+                                cardItemInfo.setAlpha(0f);
                                 cardItemInfo.setVisibility(View.VISIBLE);
+                                showItemInfo(tempItem);
+                                cardItemInfo.animate()
+                                    .alpha(1f)
+                                    .setDuration(300)
+                                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                    .start();
+                                
+                                // Force keep InfoWindow visible
+                                mapView.postDelayed(() -> {
+                                    if (m.getInfoWindow() != null) {
+                                        m.getInfoWindow().getView().setVisibility(View.VISIBLE);
+                                        m.getInfoWindow().getView().bringToFront();
+                                    }
+                                }, 100);
+                                
                                 break;
                             }
                         }
                     }
                 }
-            }, 300); // Delay 300ms để marker được add vào map trước
+                
+                // OPTIONAL: Smooth zoom AFTER showing InfoWindow
+                mapView.postDelayed(() -> {
+                    mapController.animateTo(itemPoint, 19.0, 600L);
+                }, 400);
+            }, 300); // Delay để marker được add vào map hoàn toàn
         } else {
-            // Zoom bình thường cho view tổng quan
-            mapController.setZoom(18.0);
+            // Smooth zoom cho view tổng quan
+            mapController.setZoom(17.0);
             GeoPoint startPoint = new GeoPoint(FPT_LAT, FPT_LNG);
             mapController.setCenter(startPoint);
+            
+            // Smooth zoom in animation
+            mapView.postDelayed(() -> {
+                mapController.animateTo(startPoint, 18.5, 600L);
+            }, 200);
         }
     }
 
@@ -392,8 +434,8 @@ public class MapActivity extends AppCompatActivity {
                 statusLabel = "Không rõ";
         }
         
-        // Tạo marker icon với màu sắc tùy chỉnh
-        android.graphics.drawable.Drawable defaultMarker = getResources().getDrawable(org.osmdroid.library.R.drawable.marker_default);
+        // Tạo marker icon với màu sắc tùy chỉnh - Dùng drawable mặc định của Android
+        android.graphics.drawable.Drawable defaultMarker = ContextCompat.getDrawable(this, android.R.drawable.ic_menu_mapmode);
         if (defaultMarker != null) {
             defaultMarker = defaultMarker.mutate(); // Để không ảnh hưởng markers khác
             defaultMarker.setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
@@ -417,9 +459,10 @@ public class MapActivity extends AppCompatActivity {
 
             // If clicking different marker -> close old, show new
             if (selectedMarker != null && !selectedMarker.equals(clickedMarker)) {
-                // Close old marker's InfoWindow
-                if (selectedMarker.isInfoWindowShown()) {
-                    selectedMarker.closeInfoWindow();
+                // Close old marker's InfoWindow EXPLICITLY
+                if (selectedMarker.getInfoWindow() instanceof CustomMarkerInfoWindow) {
+                    CustomMarkerInfoWindow oldInfoWindow = (CustomMarkerInfoWindow) selectedMarker.getInfoWindow();
+                    oldInfoWindow.forceClose();
                 }
                 
                 // Fade out old card description
@@ -437,24 +480,37 @@ public class MapActivity extends AppCompatActivity {
                         if (relatedObj instanceof LostItem) {
                             LostItem newItem = (LostItem) relatedObj;
                             
-                            // Show InfoWindow first
+                            // Show InfoWindow IMMEDIATELY (không chờ map animate)
                             clickedMarker.showInfoWindow();
                             
-                            // Then fade in card with item info
+                            // Show card with fade in
                             cardItemInfo.setAlpha(0f);
                             cardItemInfo.setVisibility(View.VISIBLE);
                             showItemInfo(newItem);
                             cardItemInfo.animate()
                                 .alpha(1f)
                                 .setDuration(300)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
                                 .start();
+                            
+                            // OPTIONAL: Smooth animate map AFTER showing InfoWindow (nếu marker ở ngoài view)
+                            // Delay để InfoWindow đã mở rồi mới animate map
+                            mapView.postDelayed(() -> {
+                                GeoPoint markerPos = clickedMarker.getPosition();
+                                // Check if marker is visible in current view
+                                org.osmdroid.views.MapView mv = (org.osmdroid.views.MapView) mapView;
+                                if (!mv.getProjection().getBoundingBox().contains(markerPos)) {
+                                    // Only animate if marker is outside current view
+                                    mapController.animateTo(markerPos, null, 300L);
+                                }
+                            }, 400);
                         }
                     })
                     .start();
             } else {
                 // First time clicking any marker
                 selectedMarker = clickedMarker;
-                showNewMarkerContent(clickedMarker);
+                showNewMarkerContentNoAnimation(clickedMarker);
             }
             
             return true;
@@ -502,6 +558,73 @@ public class MapActivity extends AppCompatActivity {
             .alpha(1f)
             .setDuration(300)
             .start();
+    }
+    
+    private void showNewMarkerContentWithAnimation(Marker marker) {
+        // Get item from marker
+        Object relatedObj = marker.getRelatedObject();
+        if (!(relatedObj instanceof LostItem)) {
+            return;
+        }
+        
+        LostItem item = (LostItem) relatedObj;
+        
+        // Smooth animate map to marker position FIRST
+        GeoPoint markerPos = marker.getPosition();
+        mapController.animateTo(markerPos, 18.5, 500L); // 500ms smooth animation with zoom
+        
+        // Delay InfoWindow + Card để map animate xong
+        mapView.postDelayed(() -> {
+            // Show InfoWindow above marker
+            marker.showInfoWindow();
+            
+            // Setup card content with fade-in
+            cardItemInfo.setAlpha(0f);
+            cardItemInfo.setVisibility(View.VISIBLE);
+            showItemInfo(item);
+            
+            // Smooth fade-in animation
+            cardItemInfo.animate()
+                .alpha(1f)
+                .setDuration(300)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
+        }, 300); // Delay 300ms để map animate trước
+    }
+    
+    private void showNewMarkerContentNoAnimation(Marker marker) {
+        // Get item from marker
+        Object relatedObj = marker.getRelatedObject();
+        if (!(relatedObj instanceof LostItem)) {
+            return;
+        }
+        
+        LostItem item = (LostItem) relatedObj;
+        
+        // Show InfoWindow IMMEDIATELY - không delay
+        marker.showInfoWindow();
+        
+        // Setup card content with quick fade-in
+        cardItemInfo.setAlpha(0f);
+        cardItemInfo.setVisibility(View.VISIBLE);
+        showItemInfo(item);
+        
+        // Quick fade-in animation
+        cardItemInfo.animate()
+            .alpha(1f)
+            .setDuration(200)
+            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+            .start();
+        
+        // OPTIONAL: Smooth animate map AFTER (nếu marker ngoài view)
+        mapView.postDelayed(() -> {
+            GeoPoint markerPos = marker.getPosition();
+            org.osmdroid.views.MapView mv = (org.osmdroid.views.MapView) mapView;
+            if (!mv.getProjection().getBoundingBox().contains(markerPos)) {
+                // Only animate if marker outside view
+                mapController.animateTo(markerPos, null, 300L);
+            }
+        }, 300);
     }
     
     private void showItemInfoWithAnimation(LostItem item) {
@@ -629,22 +752,25 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void hideItemInfoWithAnimation() {
-        // Force close selected marker's InfoWindow
+        // Force close selected marker's InfoWindow EXPLICITLY
         if (selectedMarker != null && selectedMarker.getInfoWindow() instanceof CustomMarkerInfoWindow) {
             CustomMarkerInfoWindow infoWindow = (CustomMarkerInfoWindow) selectedMarker.getInfoWindow();
             infoWindow.forceClose();
         }
         
-        // Close all InfoWindows on map (fallback)
-        org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(mapView);
-        
-        // Fade out animation for card
+        // Smooth fade out animation for card
         cardItemInfo.animate()
             .alpha(0f)
-            .setDuration(200)
+            .setDuration(250)
+            .setInterpolator(new android.view.animation.AccelerateInterpolator())
             .withEndAction(() -> {
                 cardItemInfo.setVisibility(View.GONE);
                 cardItemInfo.setAlpha(1f); // Reset alpha for next show
+                
+                // Clear selection
+                selectedMarker = null;
+                selectedItem = null;
+                currentMarkerPosition = null;
             })
             .start();
     }
@@ -679,13 +805,31 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void onFabMyLocationClick(View view) {
-        // Center on FPT Campus với zoom cao
+        // Smooth animate to FPT Campus với zoom cao
         GeoPoint fptPoint = new GeoPoint(FPT_LAT, FPT_LNG);
-        mapController.animateTo(fptPoint);
-        mapController.setZoom(21.0); // Zoom rất gần
+        
+        // Smooth zoom + pan animation (duration: 800ms)
+        mapController.animateTo(fptPoint, 20.0, 800L);
+        
+        // Optional: Hiển thị toast feedback
+        Toast.makeText(this, "📍 Vị trí FPT Campus", Toast.LENGTH_SHORT).show();
     }
 
     private void onFabFilterClick(View view) {
+        // FAB click animation
+        view.animate()
+            .scaleX(0.9f)
+            .scaleY(0.9f)
+            .setDuration(100)
+            .withEndAction(() -> {
+                view.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(100)
+                    .start();
+            })
+            .start();
+            
         ErrorDialogHelper.showError(this, "Chức năng đang phát triển",
                 "Chức năng lọc đồ thất lạc sẽ được cập nhật trong phiên bản tiếp theo");
     }
@@ -709,6 +853,20 @@ public class MapActivity extends AppCompatActivity {
             Toast.makeText(this, "Vui lòng chọn một item trên bản đồ", Toast.LENGTH_SHORT).show();
             return;
         }
+        
+        // Button click animation
+        view.animate()
+            .scaleX(0.95f)
+            .scaleY(0.95f)
+            .setDuration(100)
+            .withEndAction(() -> {
+                view.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(100)
+                    .start();
+            })
+            .start();
         
         // Draw route from FPT to selected marker
         GeoPoint fptPoint = new GeoPoint(FPT_LAT, FPT_LNG);
@@ -924,6 +1082,7 @@ public class MapActivity extends AppCompatActivity {
         private TextView tvMarkerTitle;
         private TextView tvMarkerStatus;
         private boolean preventAutoClose = true; // Flag để ngăn auto-close
+        private boolean isOpened = false;
 
         public CustomMarkerInfoWindow(int layoutResId, MapView mapView) {
             super(layoutResId, mapView);
@@ -935,7 +1094,8 @@ public class MapActivity extends AppCompatActivity {
 
         @Override
         public void onOpen(Object item) {
-            preventAutoClose = true; // Reset flag
+            preventAutoClose = true; // LUÔN ngăn auto-close
+            isOpened = true;
             
             Marker marker = (Marker) item;
             Object relatedObj = marker.getRelatedObject();
@@ -977,23 +1137,40 @@ public class MapActivity extends AppCompatActivity {
                 tvMarkerStatus.setText(statusLabel);
             }
             
-            // Giữ InfoWindow mở - không tự động đóng
+            // FORCE giữ InfoWindow mở - không tự động đóng
             mView.setVisibility(View.VISIBLE);
+            
+            // Post delay để đảm bảo view được vẽ
+            mView.postDelayed(() -> {
+                if (isOpened) {
+                    mView.setVisibility(View.VISIBLE);
+                    mView.bringToFront();
+                    mView.invalidate();
+                }
+            }, 50);
         }
 
         @Override
         public void onClose() {
-            // CHỈ đóng khi được gọi EXPLICITLY từ hideItemInfo()
+            // TUYỆT ĐỐI không đóng tự động - CHỈ đóng khi forceClose() được gọi
             if (!preventAutoClose) {
+                isOpened = false;
                 mView.setVisibility(View.GONE);
+            } else {
+                // FORCE giữ mở bằng cách set lại visibility
+                mView.setVisibility(View.VISIBLE);
             }
-            // Nếu preventAutoClose=true thì KHÔNG đóng (ignore auto-close từ OSMDroid)
         }
         
         // Method để force close khi cần
         public void forceClose() {
             preventAutoClose = false;
+            isOpened = false;
             mView.setVisibility(View.GONE);
+            // Reset flag sau khi đóng để lần sau có thể mở lại
+            mView.postDelayed(() -> {
+                preventAutoClose = true;
+            }, 100);
         }
     }
 
