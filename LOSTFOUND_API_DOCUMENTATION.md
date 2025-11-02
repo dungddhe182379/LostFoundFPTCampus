@@ -127,11 +127,50 @@
 - **Example:** `GET /api/lostfound/user/5`
 - **Response Success (200):** Same as profile response
 
+### 6. Get All Users 🆕
+- **URL:** `GET /api/lostfound/user`
+- **Headers:** `Authorization: Bearer {token}`
+- **Description:** Get list of all registered users (sorted by creation date, newest first)
+- **Response Success (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "uuid": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Nguyen Van A",
+      "email": "nguyenvana@fpt.edu.vn",
+      "phone": "0123456789",
+      "avatarUrl": "https://example.com/avatar1.jpg",
+      "karma": 100,
+      "createdAt": "2025-11-01T10:30:00"
+    },
+    {
+      "id": 2,
+      "uuid": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Tran Thi B",
+      "email": "tranthib@fpt.edu.vn",
+      "phone": "0987654321",
+      "avatarUrl": null,
+      "karma": 50,
+      "createdAt": "2025-11-01T11:00:00"
+    }
+  ],
+  "timestamp": 1730454600000
+}
+```
+- **Notes:**
+  - Password hash is **NOT** included in response (security)
+  - Requires authentication (JWT token)
+  - Returns all users in database
+  - Useful for admin panels, leaderboards, user selection
+
 ---
 
 ## 📦 ITEM APIs (Lost & Found Items)
 
-### 6. Get All Items
+### 7. Get All Items
 - **URL:** `GET /api/lostfound/items`
 - **Headers:** `Authorization: Bearer {token}`
 - **Query Parameters (Optional):**
@@ -165,7 +204,7 @@
 }
 ```
 
-### 7. Get Item By ID
+### 8. Get Item By ID
 - **URL:** `GET /api/lostfound/items/{itemId}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Example:** `GET /api/lostfound/items/1`
@@ -191,7 +230,7 @@
 }
 ```
 
-### 8. Get Items By Status
+### 9. Get Items By Status
 - **URL:** `GET /api/lostfound/items/status/{status}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Status Values:** `lost`, `found`, `returned`
@@ -201,7 +240,7 @@
   - `GET /api/lostfound/items/status/returned` - Get all returned items
 - **Response Success (200):** Array of items
 
-### 9. Search Items
+### 10. Search Items
 - **URL:** `GET /api/lostfound/items/search?q={keyword}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Query Parameters:**
@@ -209,7 +248,7 @@
 - **Example:** `GET /api/lostfound/items/search?q=iPhone`
 - **Response Success (200):** Array of matching items
 
-### 10. Create New Item
+### 11. Create New Item
 - **URL:** `POST /api/lostfound/items`
 - **Headers:** 
   - `Authorization: Bearer {token}`
@@ -236,7 +275,7 @@
 }
 ```
 
-### 11. Update Item
+### 12. Update Item
 - **URL:** `PUT /api/lostfound/items/{itemId}`
 - **Headers:** 
   - `Authorization: Bearer {token}`
@@ -260,7 +299,7 @@
 }
 ```
 
-### 12. Delete Item
+### 13. Delete Item
 - **URL:** `DELETE /api/lostfound/items/{itemId}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Example:** `DELETE /api/lostfound/items/1`
@@ -278,7 +317,7 @@
 
 ## 🔔 NOTIFICATION APIs
 
-### 13. Get All Notifications
+### 14. Get All Notifications
 - **URL:** `GET /api/lostfound/notifications`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):**
@@ -299,12 +338,12 @@
 }
 ```
 
-### 14. Get Unread Notifications
+### 15. Get Unread Notifications
 - **URL:** `GET /api/lostfound/notifications/unread`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):** Array of unread notifications
 
-### 15. Get Unread Count
+### 16. Get Unread Count
 - **URL:** `GET /api/lostfound/notifications/count`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):**
@@ -318,7 +357,7 @@
 }
 ```
 
-### 16. Create Notification
+### 17. Create Notification
 - **URL:** `POST /api/lostfound/notifications`
 - **Headers:** 
   - `Authorization: Bearer {token}`
@@ -340,7 +379,7 @@
 }
 ```
 
-### 17. Mark Notification As Read
+### 18. Mark Notification As Read
 - **URL:** `PUT /api/lostfound/notifications/{notificationId}/read`
 - **Headers:** `Authorization: Bearer {token}`
 - **Example:** `PUT /api/lostfound/notifications/1/read`
@@ -354,7 +393,7 @@
 }
 ```
 
-### 18. Mark All Notifications As Read
+### 19. Mark All Notifications As Read
 - **URL:** `PUT /api/lostfound/notifications/read-all`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):**
@@ -367,7 +406,7 @@
 }
 ```
 
-### 19. Delete Notification
+### 20. Delete Notification
 - **URL:** `DELETE /api/lostfound/notifications/{notificationId}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Example:** `DELETE /api/lostfound/notifications/1`
@@ -490,11 +529,23 @@ If you encounter any issues with the API, please check:
 3. Request body is valid JSON
 4. All required fields are provided
 
-**Server URL:** http://vietsuky.com/Vietsuky2/ (production)
+**Server URL:** https://vietsuky.com/api/lostfound (production)
 **Database:** lostfound_fptcampus
 
 ---
 
-**Generated:** November 1, 2025
-**Version:** 1.0
+## 📊 API SUMMARY
+
+**Total Endpoints:** 20 APIs
+- **Authentication:** 2 APIs
+- **User Management:** 4 APIs (including Get All Users 🆕)
+- **Item Management:** 7 APIs
+- **Notifications:** 7 APIs
+
+**Latest Update:** November 2, 2025 - Added Get All Users API
+
+---
+
+**Generated:** November 2, 2025
+**Version:** 1.1
 **Author:** API Documentation Generator

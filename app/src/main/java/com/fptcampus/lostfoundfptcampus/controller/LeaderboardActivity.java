@@ -94,54 +94,48 @@ public class LeaderboardActivity extends AppCompatActivity {
     }
 
     private void loadLeaderboard() {
-        // Check network first
+        // LUÔN hiển thị từ cache TRƯỚC (để UX tốt hơn)
+        loadFromCache();
+        
+        // Check network for sync
         if (!NetworkUtil.isNetworkAvailable(this)) {
-            showLoading(false);
-            ErrorDialogHelper.showError(
-                this,
-                "Không có kết nối mạng",
-                "Vui lòng kiểm tra kết nối internet và thử lại."
-            );
-            // Try to load from cache
-            loadFromCache();
+            Toast.makeText(this, "Không có mạng - Hiển thị dữ liệu offline", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // Sync from API in background (không block UI)
         showLoading(true);
         
-        // Step 1: Load all items to get unique user IDs
-        Call<ApiResponse<List<LostItem>>> call = ApiClient.getItemApi()
-                .getAllItems("Bearer " + prefsManager.getToken());
+        // 🆕 NEW: Sử dụng API getAllUsers thay vì lấy từ items
+        Call<ApiResponse<List<User>>> call = ApiClient.getUserApi()
+                .getAllUsers("Bearer " + prefsManager.getToken());
 
-        call.enqueue(new Callback<ApiResponse<List<LostItem>>>() {
+        call.enqueue(new Callback<ApiResponse<List<User>>>() {
             @Override
-            public void onResponse(Call<ApiResponse<List<LostItem>>> call, Response<ApiResponse<List<LostItem>>> response) {
+            public void onResponse(Call<ApiResponse<List<User>>> call, Response<ApiResponse<List<User>>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse<List<LostItem>> apiResponse = response.body();
+                    ApiResponse<List<User>> apiResponse = response.body();
                     
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                        List<LostItem> items = apiResponse.getData();
-                        android.util.Log.d("LeaderboardActivity", "Loaded " + items.size() + " items from API");
+                        List<User> users = apiResponse.getData();
+                        android.util.Log.d("LeaderboardActivity", "✅ Loaded " + users.size() + " users directly from API");
                         
-                        // Step 2: Extract unique user IDs
-                        Set<Long> userIds = new HashSet<>();
-                        for (LostItem item : items) {
-                            if (item.getUserId() > 0) {
-                                userIds.add(item.getUserId());
+                        // Cache tất cả users vào database
+                        executorService.execute(() -> {
+                            for (User user : users) {
+                                database.userDao().insert(user);
+                                android.util.Log.d("LeaderboardActivity", "Cached user: " + user.getName() + " - Karma: " + user.getKarma());
                             }
-                        }
+                        });
                         
-                        android.util.Log.d("LeaderboardActivity", "Found " + userIds.size() + " unique users");
-                        
-                        // Step 3: Fetch each user's details
-                        fetchUsersDetails(new ArrayList<>(userIds));
+                        // Xử lý và hiển thị
+                        processAndDisplayUsers(users);
                     } else {
                         runOnUiThread(() -> {
                             showLoading(false);
                             Toast.makeText(LeaderboardActivity.this, 
                                 "Lỗi: " + (apiResponse.getError() != null ? apiResponse.getError() : "Không có dữ liệu"), 
                                 Toast.LENGTH_SHORT).show();
-                            loadFromCache();
                         });
                     }
                 } else {
@@ -150,78 +144,20 @@ public class LeaderboardActivity extends AppCompatActivity {
                         Toast.makeText(LeaderboardActivity.this, 
                             "Lỗi server: " + response.code(), 
                             Toast.LENGTH_SHORT).show();
-                        loadFromCache();
                     });
                 }
             }
 
             @Override
-            public void onFailure(Call<ApiResponse<List<LostItem>>> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<List<User>>> call, Throwable t) {
                 runOnUiThread(() -> {
                     showLoading(false);
                     Toast.makeText(LeaderboardActivity.this, 
                         "Lỗi kết nối: " + t.getMessage(), 
                         Toast.LENGTH_SHORT).show();
-                    loadFromCache();
                 });
             }
         });
-    }
-    
-    private void fetchUsersDetails(List<Long> userIds) {
-        if (userIds.isEmpty()) {
-            runOnUiThread(() -> {
-                showLoading(false);
-                Toast.makeText(this, "Không tìm thấy người dùng nào", Toast.LENGTH_SHORT).show();
-            });
-            return;
-        }
-        
-        List<User> fetchedUsers = new ArrayList<>();
-        final int[] completedRequests = {0};
-        final int totalRequests = userIds.size();
-        
-        for (Long userId : userIds) {
-            Call<ApiResponse<User>> call = ApiClient.getUserApi()
-                    .getUserById("Bearer " + prefsManager.getToken(), userId);
-            
-            call.enqueue(new Callback<ApiResponse<User>>() {
-                @Override
-                public void onResponse(Call<ApiResponse<User>> call, Response<ApiResponse<User>> response) {
-                    synchronized (fetchedUsers) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            ApiResponse<User> apiResponse = response.body();
-                            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                                User user = apiResponse.getData();
-                                fetchedUsers.add(user);
-                                android.util.Log.d("LeaderboardActivity", "Fetched user: " + user.getName() + " - Karma: " + user.getKarma());
-                                
-                                // Cache user to database
-                                executorService.execute(() -> database.userDao().insert(user));
-                            }
-                        }
-                        
-                        completedRequests[0]++;
-                        
-                        // When all requests complete
-                        if (completedRequests[0] == totalRequests) {
-                            processAndDisplayUsers(fetchedUsers);
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<ApiResponse<User>> call, Throwable t) {
-                    synchronized (fetchedUsers) {
-                        completedRequests[0]++;
-                        
-                        if (completedRequests[0] == totalRequests) {
-                            processAndDisplayUsers(fetchedUsers);
-                        }
-                    }
-                }
-            });
-        }
     }
     
     private void processAndDisplayUsers(List<User> users) {
@@ -244,17 +180,24 @@ public class LeaderboardActivity extends AppCompatActivity {
     }
     
     private void loadFromCache() {
-        // Load from local database as fallback
+        // Load from local database (cached from API)
+        // 🆕 NEW: Database bây giờ chứa TẤT CẢ users từ API GET /api/lostfound/user
+        // Không còn giới hạn chỉ users có items nữa
         executorService.execute(() -> {
-            List<User> users = database.userDao().getTopKarmaUsers(50); // Get top 50
+            List<User> users = database.userDao().getTopKarmaUsers(100); // Get top 100
             
-            android.util.Log.d("LeaderboardActivity", "Loaded " + (users != null ? users.size() : 0) + " users from DB");
+            android.util.Log.d("LeaderboardActivity", "========== LEADERBOARD DEBUG ==========");
+            android.util.Log.d("LeaderboardActivity", "Loaded " + (users != null ? users.size() : 0) + " users from local DB");
             
-            // Debug: Print all users
-            if (users != null) {
-                for (User u : users) {
-                    android.util.Log.d("LeaderboardActivity", "User: " + u.getName() + " - Karma: " + u.getKarma());
+            // Debug: Print all users với karma
+            if (users != null && users.size() > 0) {
+                android.util.Log.d("LeaderboardActivity", "Top 10 users:");
+                for (int i = 0; i < Math.min(10, users.size()); i++) {
+                    User u = users.get(i);
+                    android.util.Log.d("LeaderboardActivity", (i+1) + ". " + u.getName() + " - Karma: " + u.getKarma() + " (ID: " + u.getId() + ")");
                 }
+            } else {
+                android.util.Log.w("LeaderboardActivity", "⚠️ No users in local database!");
             }
 
             // Ensure users list is mutable

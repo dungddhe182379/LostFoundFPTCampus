@@ -24,4 +24,11 @@ public interface UserApi {
         @Header("Authorization") String token,
         @Path("userId") long userId
     );
+    
+    // Get all users (for leaderboard, admin, etc.)
+    // Returns list of all users, sorted by creation date (newest first)
+    @GET("api/lostfound/user")
+    Call<ApiResponse<java.util.List<User>>> getAllUsers(
+        @Header("Authorization") String token
+    );
 }
