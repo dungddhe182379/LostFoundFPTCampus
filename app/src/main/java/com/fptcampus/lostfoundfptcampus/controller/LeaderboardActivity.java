@@ -94,19 +94,18 @@ public class LeaderboardActivity extends AppCompatActivity {
     }
 
     private void loadLeaderboard() {
-        // LUÔN hiển thị từ cache TRƯỚC (để UX tốt hơn)
-        loadFromCache();
-        
-        // Check network for sync
+        // Check network first
         if (!NetworkUtil.isNetworkAvailable(this)) {
             Toast.makeText(this, "Không có mạng - Hiển thị dữ liệu offline", Toast.LENGTH_SHORT).show();
+            showLoading(false);
+            loadFromCache(); // Fallback to cache khi không có mạng
             return;
         }
 
-        // Sync from API in background (không block UI)
+        // Show loading và call API TRƯỚC (để luôn lấy data mới nhất)
         showLoading(true);
         
-        // 🆕 NEW: Sử dụng API getAllUsers thay vì lấy từ items
+        // 🆕 Call API để lấy TẤT CẢ users mới nhất
         Call<ApiResponse<List<User>>> call = ApiClient.getUserApi()
                 .getAllUsers("Bearer " + prefsManager.getToken());
 
@@ -118,17 +117,30 @@ public class LeaderboardActivity extends AppCompatActivity {
                     
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                         List<User> users = apiResponse.getData();
+                        android.util.Log.d("LeaderboardActivity", "========== API RESPONSE ==========");
                         android.util.Log.d("LeaderboardActivity", "✅ Loaded " + users.size() + " users directly from API");
                         
-                        // Cache tất cả users vào database
+                        // Log top 10 users
+                        android.util.Log.d("LeaderboardActivity", "Top 10 users from API:");
+                        for (int i = 0; i < Math.min(10, users.size()); i++) {
+                            User u = users.get(i);
+                            android.util.Log.d("LeaderboardActivity", (i+1) + ". " + u.getName() + " - Karma: " + u.getKarma() + " (ID: " + u.getId() + ")");
+                        }
+                        
+                        // Cache tất cả users vào database (async)
                         executorService.execute(() -> {
+                            // Clear old data first
+                            database.userDao().deleteAll();
+                            android.util.Log.d("LeaderboardActivity", "Cleared old user cache");
+                            
+                            // Insert new data
                             for (User user : users) {
                                 database.userDao().insert(user);
-                                android.util.Log.d("LeaderboardActivity", "Cached user: " + user.getName() + " - Karma: " + user.getKarma());
                             }
+                            android.util.Log.d("LeaderboardActivity", "Cached " + users.size() + " users to database");
                         });
                         
-                        // Xử lý và hiển thị
+                        // Xử lý và hiển thị NGAY
                         processAndDisplayUsers(users);
                     } else {
                         runOnUiThread(() -> {
@@ -136,6 +148,8 @@ public class LeaderboardActivity extends AppCompatActivity {
                             Toast.makeText(LeaderboardActivity.this, 
                                 "Lỗi: " + (apiResponse.getError() != null ? apiResponse.getError() : "Không có dữ liệu"), 
                                 Toast.LENGTH_SHORT).show();
+                            // Fallback to cache khi API error
+                            loadFromCache();
                         });
                     }
                 } else {
@@ -144,23 +158,29 @@ public class LeaderboardActivity extends AppCompatActivity {
                         Toast.makeText(LeaderboardActivity.this, 
                             "Lỗi server: " + response.code(), 
                             Toast.LENGTH_SHORT).show();
+                        // Fallback to cache khi server error
+                        loadFromCache();
                     });
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<User>>> call, Throwable t) {
+                android.util.Log.e("LeaderboardActivity", "API call failed", t);
                 runOnUiThread(() -> {
                     showLoading(false);
                     Toast.makeText(LeaderboardActivity.this, 
                         "Lỗi kết nối: " + t.getMessage(), 
                         Toast.LENGTH_SHORT).show();
+                    // Fallback to cache khi network error
+                    loadFromCache();
                 });
             }
         });
     }
     
     private void processAndDisplayUsers(List<User> users) {
+        android.util.Log.d("LeaderboardActivity", "========== PROCESSING ==========");
         android.util.Log.d("LeaderboardActivity", "Processing " + users.size() + " users");
         
         // Sort by karma (highest first)
@@ -168,12 +188,21 @@ public class LeaderboardActivity extends AppCompatActivity {
             return Integer.compare(u2.getKarma(), u1.getKarma());
         });
         
+        // Log top 5 after sorting
+        android.util.Log.d("LeaderboardActivity", "Top 5 after sorting:");
+        for (int i = 0; i < Math.min(5, users.size()); i++) {
+            User u = users.get(i);
+            android.util.Log.d("LeaderboardActivity", (i+1) + ". " + u.getName() + " - Karma: " + u.getKarma());
+        }
+        
         runOnUiThread(() -> {
             showLoading(false);
             
             if (!users.isEmpty()) {
+                android.util.Log.d("LeaderboardActivity", "Displaying " + users.size() + " users in UI");
                 displayLeaderboard(users);
             } else {
+                android.util.Log.w("LeaderboardActivity", "No users to display!");
                 Toast.makeText(this, "Không có dữ liệu xếp hạng", Toast.LENGTH_SHORT).show();
             }
         });
