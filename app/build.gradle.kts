@@ -75,6 +75,9 @@ dependencies {
     // --- SwipeRefreshLayout ---
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
+    implementation("androidx.emoji2:emoji2:1.4.0")
+    implementation("androidx.emoji2:emoji2-views:1.4.0")
+
     // --- ANDROID CORE UI ---
     implementation(libs.appcompat)
     implementation(libs.material)

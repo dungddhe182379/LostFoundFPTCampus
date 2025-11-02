@@ -643,16 +643,17 @@ public class MapActivity extends AppCompatActivity {
         if (item.getStatus() != null) {
             switch (item.getStatus().toLowerCase()) {
                 case "lost":
-                    statusText = "🔴 Thất lạc";
+                    statusText = "⛔ Thất lạc";
                     break;
                 case "found":
-                    statusText = "🟢 Đã tìm thấy";
+                    statusText = "✅ Đã tìm thấy";
                     break;
                 case "returned":
-                    statusText = "🟡 Đã trả";
+                    statusText = "📦 Đã trả";
                     break;
                 default:
-                    statusText = "⚪ Không rõ";
+                    statusText = "⚙️ Không rõ";
+                    break;
             }
         }
         String category = item.getCategory() != null ? item.getCategory() : "Khác";
@@ -708,16 +709,16 @@ public class MapActivity extends AppCompatActivity {
         if (item.getStatus() != null) {
             switch (item.getStatus().toLowerCase()) {
                 case "lost":
-                    statusText = "🔴 Thất lạc";
+                    statusText = "Thất lạc";
                     break;
                 case "found":
-                    statusText = "🟢 Đã tìm thấy";
+                    statusText = "Đã tìm thấy";
                     break;
                 case "returned":
-                    statusText = "🟡 Đã trả";
+                    statusText = "Đã trả";
                     break;
                 default:
-                    statusText = "⚪ Không rõ";
+                    statusText = "Không rõ";
             }
         }
         String category = item.getCategory() != null ? item.getCategory() : "Khác";
@@ -1123,16 +1124,16 @@ public class MapActivity extends AppCompatActivity {
                 String statusLabel;
                 switch (status != null ? status.toLowerCase() : "") {
                     case "lost":
-                        statusLabel = "🔴 Thất lạc";
+                        statusLabel = "⛔ Thất lạc";
                         break;
                     case "found":
-                        statusLabel = "🟢 Đã tìm thấy";
+                        statusLabel = "✅ Đã tìm thấy";
                         break;
                     case "returned":
-                        statusLabel = "🟡 Đã trả";
+                        statusLabel = "📦 Đã trả";
                         break;
                     default:
-                        statusLabel = "⚪ Không rõ";
+                        statusLabel = "⚙️ Không rõ";
                 }
                 tvMarkerStatus.setText(statusLabel);
             }
