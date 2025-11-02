@@ -303,6 +303,15 @@ public class MapActivity extends AppCompatActivity {
             AppDatabase db = AppDatabase.getInstance(this);
             List<LostItem> localItems = db.lostItemDao().getAllItems();
 
+            // Debug log
+            android.util.Log.d("MapActivity", "Local items count: " + (localItems != null ? localItems.size() : 0));
+            if (localItems != null && localItems.size() > 0) {
+                for (LostItem item : localItems) {
+                    android.util.Log.d("MapActivity", "Item: " + item.getTitle() + 
+                        " - Lat: " + item.getLatitude() + ", Lng: " + item.getLongitude());
+                }
+            }
+
             runOnUiThread(() -> {
                 displayItemsOnMap(localItems);
             });
@@ -390,13 +399,20 @@ public class MapActivity extends AppCompatActivity {
         mapView.invalidate();
 
         final int finalCount = markerCount;
+        final int totalItems = items != null ? items.size() : 0;
+        
         runOnUiThread(() -> {
             if (finalCount > 0) {
                 // Success - markers added
-            } else {
-                ErrorDialogHelper.showError(this, "Thông báo",
-                        "Chưa có đồ thất lạc nào có thông tin vị trí");
+                // Optional: Hiển thị toast số lượng marker
+                // Toast.makeText(this, "Đã hiển thị " + finalCount + " vị trí", Toast.LENGTH_SHORT).show();
+            } else if (totalItems > 0) {
+                // Có items nhưng không có vị trí → Toast nhẹ nhàng
+                Toast.makeText(this, 
+                    "Các đồ thất lạc chưa có thông tin vị trí", 
+                    Toast.LENGTH_SHORT).show();
             }
+            // Nếu totalItems = 0 thì không hiện gì (đang load hoặc chưa có data)
         });
     }
 
@@ -813,7 +829,7 @@ public class MapActivity extends AppCompatActivity {
         mapController.animateTo(fptPoint, 20.0, 800L);
         
         // Optional: Hiển thị toast feedback
-        Toast.makeText(this, "📍 Vị trí FPT Campus", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "📍 Vị trí Hiện tại", Toast.LENGTH_SHORT).show();
     }
 
     private void onFabFilterClick(View view) {
