@@ -23,6 +23,7 @@ import com.fptcampus.lostfoundfptcampus.model.History;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
+import com.fptcampus.lostfoundfptcampus.model.dto.ConfirmHandoverRequest;
 import com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
 import com.fptcampus.lostfoundfptcampus.util.ErrorDialogHelper;
@@ -462,75 +463,70 @@ public class QrScanActivity extends AppCompatActivity {
         
         // Hiển thị progress dialog
         android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
-        progressDialog.setMessage("Đang cập nhật...");
+        progressDialog.setMessage("Đang xác nhận...");
         progressDialog.setCancelable(false);
         progressDialog.show();
         
-        // Tạo request chỉ với status field
-        UpdateItemRequest updateRequest = new UpdateItemRequest();
-        updateRequest.setStatus("returned");
+        android.util.Log.d("QrScanActivity", "Confirming handover for item " + itemId + " with token: " + qrToken);
         
-        android.util.Log.d("QrScanActivity", "Confirming handover for item " + itemId);
+        // Tạo request với QR token
+        ConfirmHandoverRequest request = new ConfirmHandoverRequest(qrToken);
         
-        // Bước 1: Update item
-        ApiClient.getItemApi().updateItem(token, itemId, updateRequest).enqueue(new Callback<ApiResponse<LostItem>>() {
+        // Call endpoint confirm-handover (thay vì update + create history riêng)
+        ApiClient.getItemApi().confirmHandover(token, itemId, request).enqueue(new Callback<ApiResponse<LostItem>>() {
             @Override
             public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
-                android.util.Log.d("QrScanActivity", "Update response code: " + response.code());
+                progressDialog.dismiss();
+                android.util.Log.d("QrScanActivity", "Confirm handover response code: " + response.code());
                 
-                if (response.isSuccessful() && response.body() != null) {
-                    if (response.body().isSuccess()) {
-                        android.util.Log.d("QrScanActivity", "✅ Item updated to 'returned' status");
-                        
-                        // Bước 2: Tạo history
-                        History history = new History();
-                        history.setItemId(itemId);
-                        history.setGiverId(giverId);
-                        history.setReceiverId(receiverId);
-                        history.setQrToken(qrToken);
-                        history.setConfirmedAt(new Date());
-                        
-                        ApiClient.getHistoryApi().createHistory(token, history).enqueue(new Callback<ApiResponse<History>>() {
-                            @Override
-                            public void onResponse(Call<ApiResponse<History>> call, Response<ApiResponse<History>> response) {
-                                progressDialog.dismiss();
-                                
-                                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                                    android.util.Log.d("QrScanActivity", "✅ History created successfully");
-                                    showSuccessDialog("Xác nhận thành công!", "Đã cập nhật trạng thái vật phẩm và ghi nhận giao dịch.");
-                                } else {
-                                    android.util.Log.e("QrScanActivity", "Failed to create history");
-                                    showErrorDialog("Cảnh báo", "Đã cập nhật vật phẩm nhưng không thể ghi lịch sử giao dịch.");
-                                }
-                            }
-
-                            @Override
-                            public void onFailure(Call<ApiResponse<History>> call, Throwable t) {
-                                progressDialog.dismiss();
-                                android.util.Log.e("QrScanActivity", "History API error", t);
-                                showErrorDialog("Cảnh báo", "Đã cập nhật vật phẩm nhưng lỗi khi ghi lịch sử: " + t.getMessage());
-                            }
-                        });
-                        
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    // Success - backend đã tự động update item và create history
+                    LostItem updatedItem = response.body().getData();
+                    android.util.Log.d("QrScanActivity", "✅ Handover confirmed successfully");
+                    android.util.Log.d("QrScanActivity", "Item status: " + updatedItem.getStatus());
+                    
+                    showSuccessDialog("Xác nhận thành công!", 
+                        "Đã hoàn tất giao dịch trả đồ.\n\n" +
+                        "📦 " + updatedItem.getTitle() + "\n" +
+                        "✅ Trạng thái: " + updatedItem.getStatus());
+                    
+                } else if (response.isSuccessful() && response.body() != null) {
+                    // API returned error
+                    String errorMsg = response.body().getError();
+                    android.util.Log.e("QrScanActivity", "Handover failed - Error: " + errorMsg);
+                    
+                    // Hiển thị error message thân thiện hơn
+                    if (errorMsg != null && errorMsg.contains("Invalid or expired")) {
+                        showErrorDialog("QR Code không hợp lệ", 
+                            "Mã QR đã hết hạn hoặc đã được sử dụng.\n\nVui lòng tạo mã QR mới.");
+                    } else if (errorMsg != null && errorMsg.contains("already marked as returned")) {
+                        showErrorDialog("Đã xác nhận trước đó", 
+                            "Vật phẩm này đã được xác nhận trả lại rồi.");
                     } else {
-                        progressDialog.dismiss();
-                        String errorMsg = response.body().getError();
-                        android.util.Log.e("QrScanActivity", "Update failed - Error: " + errorMsg);
-                        showErrorDialog("Không thể cập nhật", errorMsg);
+                        showErrorDialog("Không thể xác nhận", errorMsg);
                     }
+                    
                 } else {
-                    progressDialog.dismiss();
-                    android.util.Log.e("QrScanActivity", "Failed to update item - Response unsuccessful or null");
+                    // Network error or null response
+                    android.util.Log.e("QrScanActivity", "Failed to confirm handover - Response unsuccessful or null");
                     if (response.errorBody() != null) {
                         try {
                             String errorBody = response.errorBody().string();
                             android.util.Log.e("QrScanActivity", "Error body: " + errorBody);
-                            showErrorDialog("Lỗi cập nhật", errorBody);
+                            
+                            // Parse error từ JSON nếu có
+                            try {
+                                org.json.JSONObject errorJson = new org.json.JSONObject(errorBody);
+                                String errorMessage = errorJson.optString("error", "Không thể xác nhận giao dịch");
+                                showErrorDialog("Lỗi", errorMessage);
+                            } catch (Exception e) {
+                                showErrorDialog("Lỗi", "Không thể xác nhận giao dịch");
+                            }
                         } catch (Exception e) {
-                            showErrorDialog("Lỗi cập nhật", "Không thể cập nhật trạng thái vật phẩm");
+                            showErrorDialog("Lỗi", "Không thể xác nhận giao dịch");
                         }
                     } else {
-                        showErrorDialog("Lỗi cập nhật", "Không thể cập nhật trạng thái vật phẩm");
+                        showErrorDialog("Lỗi", "Không thể xác nhận giao dịch");
                     }
                 }
             }

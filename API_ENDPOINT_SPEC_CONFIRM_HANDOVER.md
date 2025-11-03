@@ -131,40 +131,54 @@
 - **URL:** `GET /api/lostfound/user`
 - **Headers:** `Authorization: Bearer {token}`
 - **Description:** Get list of all registered users (sorted by creation date, newest first)
+- **Last Test:** November 3, 2025 - ✅ **66 users** on production
 - **Response Success (200):**
 ```json
 {
   "success": true,
   "data": [
     {
-      "id": 1,
-      "uuid": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Nguyen Van A",
-      "email": "nguyenvana@fpt.edu.vn",
-      "phone": "0123456789",
-      "avatarUrl": "https://example.com/avatar1.jpg",
-      "karma": 100,
-      "createdAt": "2025-11-01T10:30:00"
+      "id": 118,
+      "uuid": "fa622609-f4d6-4478-bc03-55e84df24d1c",
+      "name": "Do Duy Dung 2",
+      "email": "dung2@fpt.edu.vn",
+      "phone": "0123456765",
+      "karma": 0,
+      "createdAt": "2025-11-03T16:24:12"
     },
     {
-      "id": 2,
+      "id": 117,
       "uuid": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "Tran Thi B",
-      "email": "tranthib@fpt.edu.vn",
+      "name": "Trinh Van Tuan",
+      "email": "tuantvhe180495@fpt.edu.vn",
       "phone": "0987654321",
-      "avatarUrl": null,
-      "karma": 50,
-      "createdAt": "2025-11-01T11:00:00"
+      "karma": 0,
+      "createdAt": "2025-11-03T12:50:32"
+    },
+    {
+      "id": 11,
+      "uuid": "a13f2cb5-b747-11f0-9256-fa163e438cc0",
+      "name": "Nguyễn Văn An",
+      "email": "an.nv@fpt.edu.vn",
+      "phone": "0901234567",
+      "karma": 530,
+      "createdAt": "2025-08-04T10:30:00"
     }
   ],
-  "timestamp": 1730454600000
+  "timestamp": 1762165057257
 }
 ```
+- **Statistics (Nov 3, 2025):**
+  - **Total Users:** 66
+  - **Total Karma:** 7,336
+  - **Average Karma:** 111.15
+  - **Highest Karma:** 530 (Nguyễn Văn An)
 - **Notes:**
-  - Password hash is **NOT** included in response (security)
-  - Requires authentication (JWT token)
-  - Returns all users in database
-  - Useful for admin panels, leaderboards, user selection
+  - ✅ Password hash is **NOT** included in response (security verified)
+  - ✅ Requires authentication (JWT token)
+  - ✅ Returns all users in database, sorted by `createdAt DESC`
+  - ✅ Production tested: 66 users retrieved successfully
+  - **Use cases:** Admin panels, leaderboards, user search, analytics
 
 ---
 
@@ -313,70 +327,11 @@
 }
 ```
 
-### 14. Confirm Handover 🆕
-- **URL:** `POST /api/lostfound/items/{itemId}/confirm-handover`
-- **Headers:** 
-  - `Authorization: Bearer {token}`
-  - `Content-Type: application/json`
-- **Description:** Xác nhận đã nhận lại vật phẩm thông qua QR code. Endpoint này validate QR token thay vì check ownership, tự động update item status thành "returned" và tạo history record.
-- **Body:**
-```json
-{
-  "qrToken": "TOKEN_1730678400000"
-}
-```
-- **Response Success (200):**
-```json
-{
-  "success": true,
-  "message": "Handover confirmed successfully",
-  "data": {
-    "id": 123,
-    "uuid": "item-uuid-123",
-    "userId": 10,
-    "title": "Lost iPhone 15",
-    "description": "Lost my iPhone 15 Pro Max",
-    "category": "electronics",
-    "status": "returned",
-    "latitude": 21.0285,
-    "longitude": 105.8542,
-    "imageUrl": "https://example.com/item.jpg",
-    "createdAt": "2025-11-01T10:30:00",
-    "updatedAt": "2025-11-03T16:45:00"
-  },
-  "timestamp": 1730678700000
-}
-```
-- **Response Error (400 - Invalid Token):**
-```json
-{
-  "success": false,
-  "error": "Invalid or expired QR token",
-  "timestamp": 1730678700000
-}
-```
-- **Response Error (409 - Already Returned):**
-```json
-{
-  "success": false,
-  "error": "Item already marked as returned",
-  "timestamp": 1730678700000
-}
-```
-- **Notes:**
-  - Endpoint này cho phép receiver (người quét QR) xác nhận đã nhận lại đồ
-  - Không check ownership như PUT endpoint
-  - Validate QR token (format: `TOKEN_{timestamp}`)
-  - Token chỉ được sử dụng 1 lần (check history table)
-  - Token expire sau 24 giờ
-  - Tự động tạo history record với giverId và receiverId
-  - Backend có thể gửi notification và cập nhật karma points
-
 ---
 
 ## 🔔 NOTIFICATION APIs
 
-### 15. Get All Notifications
+### 14. Get All Notifications
 - **URL:** `GET /api/lostfound/notifications`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):**
@@ -397,12 +352,12 @@
 }
 ```
 
-### 16. Get Unread Notifications
+### 15. Get Unread Notifications
 - **URL:** `GET /api/lostfound/notifications/unread`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):** Array of unread notifications
 
-### 17. Get Unread Count
+### 16. Get Unread Count
 - **URL:** `GET /api/lostfound/notifications/count`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):**
@@ -416,7 +371,7 @@
 }
 ```
 
-### 18. Create Notification
+### 17. Create Notification
 - **URL:** `POST /api/lostfound/notifications`
 - **Headers:** 
   - `Authorization: Bearer {token}`
@@ -438,7 +393,7 @@
 }
 ```
 
-### 19. Mark Notification As Read
+### 18. Mark Notification As Read
 - **URL:** `PUT /api/lostfound/notifications/{notificationId}/read`
 - **Headers:** `Authorization: Bearer {token}`
 - **Example:** `PUT /api/lostfound/notifications/1/read`
@@ -452,7 +407,7 @@
 }
 ```
 
-### 20. Mark All Notifications As Read
+### 19. Mark All Notifications As Read
 - **URL:** `PUT /api/lostfound/notifications/read-all`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response Success (200):**
@@ -465,7 +420,7 @@
 }
 ```
 
-### 21. Delete Notification
+### 20. Delete Notification
 - **URL:** `DELETE /api/lostfound/notifications/{notificationId}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Example:** `DELETE /api/lostfound/notifications/1`
@@ -481,7 +436,91 @@
 
 ---
 
-## 🔐 AUTHENTICATION FLOW
+## � SYSTEM APIs
+
+### 21. Get API Specifications 🆕
+- **URL:** `GET /api/lostfound/spec`
+- **Headers:** None required (public endpoint)
+- **Description:** Get complete API specifications, endpoints list, and system information
+- **Response Success (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "name": "Lost & Found FPT Campus API",
+    "version": "1.1.0",
+    "description": "RESTful API for Lost & Found item management system",
+    "baseUrl": "/api/lostfound",
+    "environment": "production",
+    "authentication": {
+      "type": "JWT",
+      "header": "Authorization",
+      "format": "Bearer {token}",
+      "tokenExpiry": "7 days"
+    },
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/auth/register",
+        "description": "Register new user",
+        "requiresAuth": false,
+        "category": "Authentication"
+      },
+      {
+        "method": "GET",
+        "path": "/user",
+        "description": "Get all users",
+        "requiresAuth": true,
+        "category": "Users"
+      }
+      // ... more endpoints
+    ],
+    "statistics": {
+      "totalEndpoints": 21,
+      "authEndpoints": 2,
+      "userEndpoints": 4,
+      "itemEndpoints": 7,
+      "notificationEndpoints": 7,
+      "systemEndpoints": 1
+    },
+    "itemCategories": [
+      "electronics", "documents", "wallet", "keys", 
+      "clothes", "books", "accessories", "others"
+    ],
+    "itemStatuses": ["lost", "found", "returned"],
+    "responseFormat": {
+      "success": "boolean",
+      "message": "string (optional)",
+      "data": "object or array",
+      "timestamp": "long (epoch milliseconds)"
+    },
+    "errorCodes": {
+      "200": "Success",
+      "400": "Bad Request",
+      "401": "Unauthorized",
+      "404": "Not Found",
+      "500": "Internal Server Error"
+    },
+    "server": {
+      "host": "vietsuky.com",
+      "protocol": "HTTPS",
+      "port": 443,
+      "timezone": "Asia/Ho_Chi_Minh"
+    }
+  },
+  "timestamp": 1730454600000
+}
+```
+- **Use Cases:**
+  - Auto-generate API documentation
+  - Display available endpoints in admin panel
+  - API discovery for client applications
+  - Version checking and compatibility
+  - Client-side validation of request format
+
+---
+
+## �🔐 AUTHENTICATION FLOW
 
 ### How to use JWT Token:
 
@@ -597,11 +636,16 @@ If you encounter any issues with the API, please check:
 
 **Total Endpoints:** 21 APIs
 - **Authentication:** 2 APIs
-- **User Management:** 4 APIs (including Get All Users)
-- **Item Management:** 8 APIs (including Confirm Handover 🆕)
+- **User Management:** 4 APIs
+- **Item Management:** 7 APIs
 - **Notifications:** 7 APIs
+- **System:** 1 API (API Spec 🆕)
 
-**Latest Update:** November 3, 2025 - Added Confirm Handover API for QR code flow
+**Latest Updates:**
+- **November 3, 2025** - ✅ Get All Users API tested on production: **66 users**, avg karma 111.15
+- November 2, 2025 - Added Get All Users endpoint (API #6)
+- November 3, 2025 - Added API Specifications endpoint (API #21)
+- November 2, 2025 - Added Get All Users API
 
 ---
 

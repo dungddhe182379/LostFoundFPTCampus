@@ -1,6 +1,7 @@
 package com.fptcampus.lostfoundfptcampus.model.api;
 
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
+import com.fptcampus.lostfoundfptcampus.model.dto.ConfirmHandoverRequest;
 import com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest;
 import com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest;
 
@@ -67,5 +68,12 @@ public interface ItemApi {
     Call<ApiResponse<Void>> deleteItem(
         @Header("Authorization") String token,
         @Path("itemId") long itemId
+    );
+
+    @POST("api/lostfound/items/{itemId}/confirm-handover")
+    Call<ApiResponse<LostItem>> confirmHandover(
+        @Header("Authorization") String token,
+        @Path("itemId") long itemId,
+        @Body ConfirmHandoverRequest request
     );
 }
