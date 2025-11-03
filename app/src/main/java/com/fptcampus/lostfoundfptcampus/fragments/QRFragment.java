@@ -143,13 +143,13 @@ public class QRFragment extends Fragment {
             String qrToken = json.getString("token");
             String itemTitle = json.optString("title", "Unknown Item");
             
-            android.util.Log.d("QRFragment", "Processing QR: itemId=" + itemId + ", title=" + itemTitle);
+
             
             // Show confirmation dialog
             showHandoverConfirmation(itemId, qrToken, itemTitle);
             
         } catch (Exception e) {
-            android.util.Log.e("QRFragment", "Error parsing QR content", e);
+
             updateScanStatus("❌ Mã QR không hợp lệ", R.color.error);
             Toast.makeText(requireContext(), "Mã QR không đúng định dạng", Toast.LENGTH_SHORT).show();
             resumeScanning();
@@ -223,7 +223,7 @@ public class QRFragment extends Fragment {
         
         // KIỂM TRA: Không cho phép người tạo item quét QR của chính mình
         if (itemCreatorId == scannerId) {
-            android.util.Log.w("QRFragment", "❌ Cannot scan own item: userId=" + scannerId);
+
             updateScanStatus("❌ Không thể quét mã QR của chính bạn!", R.color.error);
             Toast.makeText(requireContext(), 
                 "Bạn không thể xác nhận bàn giao đồ vật của chính mình", 
@@ -232,7 +232,7 @@ public class QRFragment extends Fragment {
             return;
         }
         
-        android.util.Log.d("QRFragment", "✅ Validation passed - confirming handover with token: " + qrToken);
+
         
         // Create ConfirmHandoverRequest with qrToken
         com.fptcampus.lostfoundfptcampus.model.dto.ConfirmHandoverRequest request = 
@@ -254,13 +254,13 @@ public class QRFragment extends Fragment {
                     
                     // Success - handover confirmed
                     LostItem updatedItem = response.body().getData();
-                    android.util.Log.d("QRFragment", "✅ Handover confirmed successfully!");
-                    android.util.Log.d("QRFragment", "Item ID: " + updatedItem.getId());
-                    android.util.Log.d("QRFragment", "Item status: " + updatedItem.getStatus());
-                    android.util.Log.d("QRFragment", "userId (creator): " + updatedItem.getUserId());
-                    android.util.Log.d("QRFragment", "lostUserId: " + updatedItem.getLostUserId());
-                    android.util.Log.d("QRFragment", "foundUserId: " + updatedItem.getFoundUserId());
-                    android.util.Log.d("QRFragment", "returnedUserId: " + updatedItem.getReturnedUserId());
+
+
+
+
+
+
+
                     
                     // CHECK: Nếu backend không set đúng các field, app sẽ tự fix
                     fixItemFieldsIfNeeded(updatedItem, scannerId, itemCreatorId, item);
@@ -272,13 +272,13 @@ public class QRFragment extends Fragment {
                     
                 } else {
                     // Error
-                    android.util.Log.e("QRFragment", "Failed to confirm handover");
+
                     String errorMessage = "Không thể xác nhận bàn giao";
                     
                     if (response.errorBody() != null) {
                         try {
                             String errorBody = response.errorBody().string();
-                            android.util.Log.e("QRFragment", "Error body: " + errorBody);
+
                             
                             // Parse error message from response
                             if (errorBody.contains("expired")) {
@@ -305,7 +305,7 @@ public class QRFragment extends Fragment {
             public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
                 if (!isAdded() || getActivity() == null) return;
 
-                android.util.Log.e("QRFragment", "Network error: " + t.getMessage(), t);
+
                 updateScanStatus("❌ Lỗi kết nối", R.color.error);
                 Toast.makeText(requireContext(), "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
                 resumeScanning();
@@ -368,7 +368,7 @@ public class QRFragment extends Fragment {
         String token = "Bearer " + prefsManager.getToken();
         long currentUserId = prefsManager.getUserId();
         
-        android.util.Log.d("QRFragment", "Refreshing user profile to get updated karma");
+
         
         ApiClient.getUserApi().getProfile(token).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
             @Override
@@ -383,15 +383,15 @@ public class QRFragment extends Fragment {
                     // Update SharedPreferences with new karma
                     prefsManager.saveUserKarma(user.getKarma());
                     
-                    android.util.Log.d("QRFragment", "✅ User profile refreshed - New karma: " + user.getKarma());
+
                 } else {
-                    android.util.Log.e("QRFragment", "Failed to refresh user profile");
+
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QRFragment", "Error refreshing profile: " + t.getMessage());
+
             }
         });
     }
@@ -441,66 +441,66 @@ public class QRFragment extends Fragment {
         boolean needsFix = false;
         String originalStatus = originalItem.getStatus() != null ? originalItem.getStatus().toLowerCase() : "";
         
-        android.util.Log.d("QRFragment", "=== FIX ITEM FIELDS ===");
-        android.util.Log.d("QRFragment", "Original status: " + originalStatus);
-        android.util.Log.d("QRFragment", "Creator ID: " + creatorId + ", Scanner ID: " + scannerId);
+
+
+
         
         // CASE 1: Item ban đầu là LOST (người mất đồ tạo QR)
         if ("lost".equals(originalStatus)) {
-            android.util.Log.d("QRFragment", "Case: LOST item - creator mất đồ, scanner tìm thấy và trả lại");
+
             
             // lostUserId = creator (người tạo = người mất)
             if (updatedItem.getLostUserId() == null || updatedItem.getLostUserId() != creatorId) {
                 updatedItem.setLostUserId(creatorId);
                 needsFix = true;
-                android.util.Log.d("QRFragment", "Fix: Set lostUserId = " + creatorId);
+
             }
             
             // foundUserId = scanner (người quét = người tìm thấy)
             if (updatedItem.getFoundUserId() == null || updatedItem.getFoundUserId() != scannerId) {
                 updatedItem.setFoundUserId(scannerId);
                 needsFix = true;
-                android.util.Log.d("QRFragment", "Fix: Set foundUserId = " + scannerId);
+
             }
             
             // returnedUserId = creator (người mất nhận lại)
             if (updatedItem.getReturnedUserId() == null || updatedItem.getReturnedUserId() != creatorId) {
                 updatedItem.setReturnedUserId(creatorId);
                 needsFix = true;
-                android.util.Log.d("QRFragment", "Fix: Set returnedUserId = " + creatorId);
+
             }
         }
         // CASE 2: Item ban đầu là FOUND (người nhặt được tạo QR)
         else if ("found".equals(originalStatus)) {
-            android.util.Log.d("QRFragment", "Case: FOUND item - creator nhặt được, scanner là chủ nhận lại");
+
             
             // foundUserId = creator (người tạo = người nhặt)
             if (updatedItem.getFoundUserId() == null || updatedItem.getFoundUserId() != creatorId) {
                 updatedItem.setFoundUserId(creatorId);
                 needsFix = true;
-                android.util.Log.d("QRFragment", "Fix: Set foundUserId = " + creatorId);
+
             }
             
             // lostUserId = scanner (người quét = người mất ban đầu - nếu chưa có)
             if (updatedItem.getLostUserId() == null) {
                 updatedItem.setLostUserId(scannerId);
                 needsFix = true;
-                android.util.Log.d("QRFragment", "Fix: Set lostUserId = " + scannerId);
+
             }
             
             // returnedUserId = scanner (người quét = người nhận lại)
             if (updatedItem.getReturnedUserId() == null || updatedItem.getReturnedUserId() != scannerId) {
                 updatedItem.setReturnedUserId(scannerId);
                 needsFix = true;
-                android.util.Log.d("QRFragment", "Fix: Set returnedUserId = " + scannerId);
+
             }
         }
         
         if (needsFix) {
-            android.util.Log.w("QRFragment", "⚠️ Backend didn't set fields correctly - fixing via PUT API");
+
             updateItemFields(updatedItem);
         } else {
-            android.util.Log.d("QRFragment", "✅ All fields are correct, no fix needed");
+
         }
     }
     
@@ -525,27 +525,19 @@ public class QRFragment extends Fragment {
                 .setReturnedUserId(item.getReturnedUserId())
                 .build();
         
-        android.util.Log.d("QRFragment", "Updating item " + item.getId() + " with: lostUserId=" + 
-                          item.getLostUserId() + ", foundUserId=" + item.getFoundUserId() + 
-                          ", returnedUserId=" + item.getReturnedUserId());
-        
         ApiClient.getItemApi().updateItem(token, item.getId(), request).enqueue(new Callback<ApiResponse<LostItem>>() {
             @Override
             public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    android.util.Log.d("QRFragment", "✅ Item fields updated successfully");
-                    LostItem fixed = response.body().getData();
-                    android.util.Log.d("QRFragment", "Fixed - lostUserId: " + fixed.getLostUserId() + 
-                                                     ", foundUserId: " + fixed.getFoundUserId() + 
-                                                     ", returnedUserId: " + fixed.getReturnedUserId());
+                    // Item fields updated successfully
                 } else {
-                    android.util.Log.e("QRFragment", "❌ Failed to update item fields");
+
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
-                android.util.Log.e("QRFragment", "❌ Error updating item fields: " + t.getMessage());
+
             }
         });
     }
@@ -561,17 +553,17 @@ public class QRFragment extends Fragment {
         Long foundUserId = item.getFoundUserId();       // Người tìm thấy/trả đồ
         Long returnedUserId = item.getReturnedUserId(); // Người nhận lại đồ
         
-        android.util.Log.d("QRFragment", "=== KARMA UPDATE (USE ALL 3 FIELDS) ===");
-        android.util.Log.d("QRFragment", "Item ID: " + item.getId());
-        android.util.Log.d("QRFragment", "lostUserId: " + lostUserId);
-        android.util.Log.d("QRFragment", "foundUserId: " + foundUserId);
-        android.util.Log.d("QRFragment", "returnedUserId: " + returnedUserId);
-        android.util.Log.d("QRFragment", "currentUserId: " + currentUserId);
+
+
+
+
+
+
         
         // Check nếu thiếu field nào
         if (lostUserId == null || foundUserId == null || returnedUserId == null) {
-            android.util.Log.e("QRFragment", "❌ ERROR: Missing user IDs after fix!");
-            android.util.Log.e("QRFragment", "lostUserId=" + lostUserId + ", foundUserId=" + foundUserId + ", returnedUserId=" + returnedUserId);
+
+
             showSuccessDialog(item);
             return;
         }
@@ -586,7 +578,7 @@ public class QRFragment extends Fragment {
         userIdsToUpdate.add(foundUserId);
         userIdsToUpdate.add(returnedUserId);
         
-        android.util.Log.d("QRFragment", "✅ Will update karma for " + userIdsToUpdate.size() + " user(s): " + userIdsToUpdate);
+
         
         // Counter to track API calls
         final int totalUsers = userIdsToUpdate.size();
@@ -615,7 +607,7 @@ public class QRFragment extends Fragment {
                         if (finalUserId == returnedUserId) role += (role.isEmpty() ? "" : "+") + "Returned";
                         if (finalUserId == lostUserId) role += (role.isEmpty() ? "" : "+") + "Lost";
                         
-                        android.util.Log.d("QRFragment", "✅ User " + finalUserId + " (" + role + ") karma: " + oldKarma + " → " + newKarma);
+
                     }
                     
                     completedCalls[0]++;
@@ -624,7 +616,7 @@ public class QRFragment extends Fragment {
 
                 @Override
                 public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                    android.util.Log.e("QRFragment", "Error getting user " + finalUserId + ": " + t.getMessage());
+
                     completedCalls[0]++;
                     checkBothUpdatesComplete(completedCalls[0], totalUsers, item, updatedKarma[0]);
                 }
@@ -638,6 +630,8 @@ public class QRFragment extends Fragment {
     private void updateUserKarma(com.fptcampus.lostfoundfptcampus.model.User user, long currentUserId, int[] updatedKarma) {
         String token = "Bearer " + prefsManager.getToken();
         
+
+        
         ApiClient.getUserApi().updateProfile(token, user).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
             @Override
             public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
@@ -649,14 +643,34 @@ public class QRFragment extends Fragment {
                     if (updated.getId() == currentUserId) {
                         prefsManager.saveUserKarma(updated.getKarma());
                         updatedKarma[0] = updated.getKarma();
-                        android.util.Log.d("QRFragment", "✅ Current user karma saved: " + updated.getKarma());
+
+                        
+                        // Show toast to confirm karma update
+                        if (isAdded() && getActivity() != null) {
+                            requireActivity().runOnUiThread(() -> {
+                                Toast.makeText(requireContext(), 
+                                    "🎉 Karma của bạn: +" + updated.getKarma() + " điểm!", 
+                                    Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }
+                } else {
+
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorBody = response.errorBody().string();
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QRFragment", "Error updating user karma: " + t.getMessage());
+
+                t.printStackTrace();
             }
         });
     }
@@ -667,7 +681,7 @@ public class QRFragment extends Fragment {
     private void checkBothUpdatesComplete(int completedCalls, int totalUsers, LostItem item, int currentUserKarma) {
         if (completedCalls >= totalUsers) {
             // All API calls completed
-            android.util.Log.d("QRFragment", "✅ All " + totalUsers + " karma updates completed");
+
             if (currentUserKarma > 0) {
                 showSuccessDialogWithKarma(item, currentUserKarma);
             } else {

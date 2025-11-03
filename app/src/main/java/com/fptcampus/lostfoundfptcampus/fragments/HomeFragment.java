@@ -121,7 +121,7 @@ public class HomeFragment extends Fragment {
                             });
                         }
                         
-                        android.util.Log.d("HomeFragment", "User info loaded from API - Karma: " + user.getKarma());
+
                     } else {
                         // Fallback to SharedPreferences if API fails
                         loadUserInfoFromPrefs();
@@ -132,7 +132,7 @@ public class HomeFragment extends Fragment {
                 public void onFailure(
                     retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call,
                     Throwable t) {
-                    android.util.Log.e("HomeFragment", "Failed to load user info from API", t);
+
                     // Fallback to SharedPreferences
                     loadUserInfoFromPrefs();
                 }
@@ -207,7 +207,7 @@ public class HomeFragment extends Fragment {
                         final int finalGivenBackCount = givenBackCount;
                         final int finalReceivedBackCount = receivedBackCount;
                         
-                        android.util.Log.d("HomeFragment", "Statistics - Lost: " + finalLostCount + ", Found: " + finalFoundCount + ", GivenBack: " + finalGivenBackCount + ", ReceivedBack: " + finalReceivedBackCount);
+
                         
                         // Check if fragment is still attached before updating UI
                         if (isAdded() && getActivity() != null) {
@@ -226,7 +226,7 @@ public class HomeFragment extends Fragment {
             public void onFailure(
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> call,
                 Throwable t) {
-                android.util.Log.e("HomeFragment", "Failed to load statistics", t);
+
             }
         });
     }

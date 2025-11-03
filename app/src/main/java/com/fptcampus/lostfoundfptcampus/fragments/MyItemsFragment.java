@@ -203,7 +203,7 @@ public class MyItemsFragment extends Fragment {
                         }
                     }
                     
-                    android.util.Log.d("MyItemsFragment", "Found " + filteredItems.size() + " items for user " + currentUserId + " with filter: " + currentFilter);
+
                     
                     if (isAdded() && getActivity() != null) {
                         requireActivity().runOnUiThread(() -> {
@@ -219,7 +219,7 @@ public class MyItemsFragment extends Fragment {
                         });
                     }
                 } else {
-                    android.util.Log.e("MyItemsFragment", "Failed to load items from API");
+
                     loadMyItemsFromDatabase(); // Fallback to database
                 }
             }
@@ -229,7 +229,7 @@ public class MyItemsFragment extends Fragment {
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>> call,
                 Throwable t) {
                 swipeRefresh.setRefreshing(false);
-                android.util.Log.e("MyItemsFragment", "API call failed, loading from database", t);
+
                 loadMyItemsFromDatabase(); // Fallback to database
             }
         });

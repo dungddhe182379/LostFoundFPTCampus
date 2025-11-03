@@ -104,9 +104,9 @@ public class QrScanActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
             hasCameraPermission = true;
-            android.util.Log.d("QrScanActivity", "✅ Camera permission already granted");
+
         } else {
-            android.util.Log.d("QrScanActivity", "⚠️ Camera permission not granted, requesting...");
+
             requestCameraPermission();
         }
     }
@@ -137,7 +137,7 @@ public class QrScanActivity extends AppCompatActivity {
         if (requestCode == CAMERA_PERMISSION_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 hasCameraPermission = true;
-                android.util.Log.d("QrScanActivity", "✅ Camera permission granted");
+
                 Toast.makeText(this, "Đã cấp quyền camera", Toast.LENGTH_SHORT).show();
                 
                 // Start scanner nếu đang ở tab scanner
@@ -146,7 +146,7 @@ public class QrScanActivity extends AppCompatActivity {
                 }
             } else {
                 hasCameraPermission = false;
-                android.util.Log.e("QrScanActivity", "❌ Camera permission denied");
+
                 
                 // Switch to generator tab
                 tabLayout.selectTab(tabLayout.getTabAt(1));
@@ -204,10 +204,10 @@ public class QrScanActivity extends AppCompatActivity {
             }
             
             if (selectedItem != null) {
-                android.util.Log.d("QrScanActivity", "Selected item: " + selectedItem.getTitle() + " (ID: " + selectedItem.getId() + ")");
+
                 onItemSelected();
             } else {
-                android.util.Log.e("QrScanActivity", "Could not find item with title: " + selectedTitle);
+
             }
         });
 
@@ -219,7 +219,7 @@ public class QrScanActivity extends AppCompatActivity {
             @Override
             public void barcodeResult(BarcodeResult result) {
                 if (result != null && result.getText() != null) {
-                    android.util.Log.d("QrScanActivity", "✅ QR Code scanned: " + result.getText());
+
                     onQrScanned(result.getText());
                 }
             }
@@ -237,7 +237,7 @@ public class QrScanActivity extends AppCompatActivity {
             
             // Lấy userId hiện tại
             long currentUserId = prefsManager.getUserId();
-            android.util.Log.d("QrScanActivity", "Current userId: " + currentUserId);
+
             
             // Filter: chỉ lấy items của user này VÀ status = "found"
             myItems = new ArrayList<>();
@@ -248,7 +248,7 @@ public class QrScanActivity extends AppCompatActivity {
                 }
             }
             
-            android.util.Log.d("QrScanActivity", "Loaded " + myItems.size() + " found items from " + allItems.size() + " total items");
+
 
             runOnUiThread(() -> {
                 if (myItems == null || myItems.isEmpty()) {
@@ -309,7 +309,7 @@ public class QrScanActivity extends AppCompatActivity {
             }
         }
         
-        android.util.Log.d("QrScanActivity", "Filtered to " + filteredItems.size() + " items from query: " + query);
+
         updateItemAdapter();
     }
     
@@ -356,7 +356,7 @@ public class QrScanActivity extends AppCompatActivity {
             btnShareQr.setEnabled(true);
 
             // Không hiển thị popup - silent success
-            android.util.Log.d("QrScanActivity", "✅ QR Code generated for item: " + selectedItem.getTitle());
+
 
         } catch (Exception e) {
             ErrorDialogHelper.showError(this, "Lỗi", "Không thể tạo mã QR: " + e.getMessage());
@@ -388,7 +388,7 @@ public class QrScanActivity extends AppCompatActivity {
     private void onQrScanned(String content) {
         barcodeScanner.pause();
         
-        android.util.Log.d("QrScanActivity", "QR Content: " + content);
+
 
         try {
             // Parse QR content: {"itemId":123,"title":"Lost iPhone","token":"TOKEN_xxx"}
@@ -400,13 +400,13 @@ public class QrScanActivity extends AppCompatActivity {
             // Lấy thông tin người quét (receiver)
             long receiverId = prefsManager.getUserId();
             
-            android.util.Log.d("QrScanActivity", "Processing QR: itemId=" + itemId + ", receiverId=" + receiverId);
+
             
             // Lấy thông tin chi tiết item và hiển thị dialog xác nhận
             showItemDetailAndConfirm(itemId, qrToken, itemTitle, receiverId);
             
         } catch (Exception e) {
-            android.util.Log.e("QrScanActivity", "Error parsing QR content", e);
+
             Toast.makeText(this, "Mã QR không hợp lệ", Toast.LENGTH_SHORT).show();
             barcodeScanner.resume();
         }
@@ -481,7 +481,7 @@ public class QrScanActivity extends AppCompatActivity {
         
         // KIỂM TRA: Không cho phép người tạo item quét QR của chính mình
         if (itemCreatorId == scannerId) {
-            android.util.Log.w("QrScanActivity", "❌ Cannot scan own item: userId=" + scannerId);
+
             showErrorDialog("Không thể xác nhận", 
                 "Bạn không thể xác nhận bàn giao đồ vật của chính mình");
             barcodeScanner.resume();
@@ -503,23 +503,20 @@ public class QrScanActivity extends AppCompatActivity {
             foundUserId = itemCreatorId;      // Người tạo item (người tìm thấy)
             lostUserId = scannerId;           // Người quét (người mất đồ)
             returnedUserId = scannerId;       // Người quét (người nhận lại)
-            android.util.Log.d("QrScanActivity", "Case: FOUND item - Scanner is LOST user");
+
         } else if ("lost".equals(itemStatus)) {
             // Item được tạo bởi người MẤT -> người quét là người TÌM THẤY
             lostUserId = itemCreatorId;       // Người tạo item (người mất)
             foundUserId = scannerId;          // Người quét (người tìm thấy và trả)
             returnedUserId = itemCreatorId;   // Người tạo item (người nhận lại)
-            android.util.Log.d("QrScanActivity", "Case: LOST item - Scanner is FOUND user");
+
         } else {
             progressDialog.dismiss();
-            android.util.Log.e("QrScanActivity", "Invalid item status: " + itemStatus);
+
             showErrorDialog("Trạng thái không hợp lệ", "Đồ vật phải ở trạng thái 'lost' hoặc 'found'");
             barcodeScanner.resume();
             return;
         }
-        
-        android.util.Log.d("QrScanActivity", "Updating item: lostUserId=" + lostUserId + 
-            ", foundUserId=" + foundUserId + ", returnedUserId=" + returnedUserId);
         
         // Create UpdateItemRequest with 3 user role fields + status
         com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest request = 
@@ -535,16 +532,16 @@ public class QrScanActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
                 progressDialog.dismiss();
-                android.util.Log.d("QrScanActivity", "Confirm handover response code: " + response.code());
+
                 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     // Success - item updated
                     LostItem updatedItem = response.body().getData();
-                    android.util.Log.d("QrScanActivity", "✅ Item updated successfully");
-                    android.util.Log.d("QrScanActivity", "Item status: " + updatedItem.getStatus());
-                    android.util.Log.d("QrScanActivity", "lostUserId: " + updatedItem.getLostUserId());
-                    android.util.Log.d("QrScanActivity", "foundUserId: " + updatedItem.getFoundUserId());
-                    android.util.Log.d("QrScanActivity", "returnedUserId: " + updatedItem.getReturnedUserId());
+
+
+
+
+
                     
                     // Update karma for BOTH lostUser and foundUser (+10 each)
                     updateKarmaForBothUsers(updatedItem);
@@ -552,7 +549,7 @@ public class QrScanActivity extends AppCompatActivity {
                 } else if (response.isSuccessful() && response.body() != null) {
                     // API returned error
                     String errorMsg = response.body().getError();
-                    android.util.Log.e("QrScanActivity", "Handover failed - Error: " + errorMsg);
+
                     
                     // Hiển thị error message thân thiện hơn
                     if (errorMsg != null && errorMsg.contains("Invalid or expired")) {
@@ -567,11 +564,11 @@ public class QrScanActivity extends AppCompatActivity {
                     
                 } else {
                     // Network error or null response
-                    android.util.Log.e("QrScanActivity", "Failed to confirm handover - Response unsuccessful or null");
+
                     if (response.errorBody() != null) {
                         try {
                             String errorBody = response.errorBody().string();
-                            android.util.Log.e("QrScanActivity", "Error body: " + errorBody);
+
                             
                             // Parse error từ JSON nếu có
                             try {
@@ -593,7 +590,7 @@ public class QrScanActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
                 progressDialog.dismiss();
-                android.util.Log.e("QrScanActivity", "Update item API error", t);
+
                 showErrorDialog("Lỗi kết nối", t.getMessage());
             }
         });
@@ -632,22 +629,22 @@ public class QrScanActivity extends AppCompatActivity {
     private void switchToScannerView() {
         // Check permission trước khi start scanner
         if (!hasCameraPermission) {
-            android.util.Log.w("QrScanActivity", "⚠️ Cannot start scanner - no camera permission");
+
             Toast.makeText(this, "Vui lòng cấp quyền camera để quét QR", Toast.LENGTH_SHORT).show();
             requestCameraPermission();
             return;
         }
         
-        android.util.Log.d("QrScanActivity", "Starting camera scanner...");
+
         barcodeScanner.setVisibility(View.VISIBLE);
         generatorLayout.setVisibility(View.GONE);
         tvInstructions.setText("Hướng camera vào mã QR để quét");
         
         try {
             barcodeScanner.resume();
-            android.util.Log.d("QrScanActivity", "✅ Camera scanner resumed");
+
         } catch (Exception e) {
-            android.util.Log.e("QrScanActivity", "❌ Error starting scanner", e);
+
             Toast.makeText(this, "Lỗi khởi động camera: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
@@ -666,15 +663,15 @@ public class QrScanActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        android.util.Log.d("QrScanActivity", "onResume - hasCameraPermission: " + hasCameraPermission);
+
         
         // CHỈ resume scanner khi có permission VÀ scanner visible
         if (hasCameraPermission && barcodeScanner != null && barcodeScanner.getVisibility() == View.VISIBLE) {
             try {
                 barcodeScanner.resume();
-                android.util.Log.d("QrScanActivity", "✅ Scanner resumed in onResume");
+
             } catch (Exception e) {
-                android.util.Log.e("QrScanActivity", "❌ Error resuming scanner", e);
+
             }
         }
     }
@@ -706,7 +703,7 @@ public class QrScanActivity extends AppCompatActivity {
         Long foundUserId = item.getFoundUserId();
         
         if (lostUserId == null || foundUserId == null) {
-            android.util.Log.e("QrScanActivity", "lostUserId or foundUserId is null");
+
             showSuccessDialog("Xác nhận thành công!", 
                 "Đã hoàn tất giao dịch trả đồ.\n\n" +
                 "📦 " + item.getTitle() + "\n" +
@@ -714,7 +711,7 @@ public class QrScanActivity extends AppCompatActivity {
             return;
         }
         
-        android.util.Log.d("QrScanActivity", "Updating karma for lostUserId=" + lostUserId + " and foundUserId=" + foundUserId);
+
         
         final int[] completedCalls = {0};
         final int[] updatedKarma = {0};
@@ -729,7 +726,7 @@ public class QrScanActivity extends AppCompatActivity {
                     int newKarma = lostUser.getKarma() + 10;
                     lostUser.setKarma(newKarma);
                     updateUserKarma(lostUser, currentUserId, updatedKarma);
-                    android.util.Log.d("QrScanActivity", "✅ LostUser karma updated: " + newKarma);
+
                 }
                 completedCalls[0]++;
                 checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
@@ -737,7 +734,7 @@ public class QrScanActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QrScanActivity", "Error getting lostUser: " + t.getMessage());
+
                 completedCalls[0]++;
                 checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
             }
@@ -753,7 +750,7 @@ public class QrScanActivity extends AppCompatActivity {
                     int newKarma = foundUser.getKarma() + 10;
                     foundUser.setKarma(newKarma);
                     updateUserKarma(foundUser, currentUserId, updatedKarma);
-                    android.util.Log.d("QrScanActivity", "✅ FoundUser karma updated: " + newKarma);
+
                 }
                 completedCalls[0]++;
                 checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
@@ -761,7 +758,7 @@ public class QrScanActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QrScanActivity", "Error getting foundUser: " + t.getMessage());
+
                 completedCalls[0]++;
                 checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
             }
@@ -780,14 +777,14 @@ public class QrScanActivity extends AppCompatActivity {
                     if (updated.getId() == currentUserId) {
                         prefsManager.saveUserKarma(updated.getKarma());
                         updatedKarma[0] = updated.getKarma();
-                        android.util.Log.d("QrScanActivity", "✅ Current user karma saved: " + updated.getKarma());
+
                     }
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QrScanActivity", "Error updating user karma: " + t.getMessage());
+
             }
         });
     }

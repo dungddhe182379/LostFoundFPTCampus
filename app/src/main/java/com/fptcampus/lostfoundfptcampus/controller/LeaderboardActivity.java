@@ -117,27 +117,27 @@ public class LeaderboardActivity extends AppCompatActivity {
                     
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                         List<User> users = apiResponse.getData();
-                        android.util.Log.d("LeaderboardActivity", "========== API RESPONSE ==========");
-                        android.util.Log.d("LeaderboardActivity", "✅ Loaded " + users.size() + " users directly from API");
+
+
                         
                         // Log top 10 users
-                        android.util.Log.d("LeaderboardActivity", "Top 10 users from API:");
+
                         for (int i = 0; i < Math.min(10, users.size()); i++) {
                             User u = users.get(i);
-                            android.util.Log.d("LeaderboardActivity", (i+1) + ". " + u.getName() + " - Karma: " + u.getKarma() + " (ID: " + u.getId() + ")");
+
                         }
                         
                         // Cache tất cả users vào database (async)
                         executorService.execute(() -> {
                             // Clear old data first
                             database.userDao().deleteAll();
-                            android.util.Log.d("LeaderboardActivity", "Cleared old user cache");
+
                             
                             // Insert new data
                             for (User user : users) {
                                 database.userDao().insert(user);
                             }
-                            android.util.Log.d("LeaderboardActivity", "Cached " + users.size() + " users to database");
+
                         });
                         
                         // Xử lý và hiển thị NGAY
@@ -166,7 +166,7 @@ public class LeaderboardActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ApiResponse<List<User>>> call, Throwable t) {
-                android.util.Log.e("LeaderboardActivity", "API call failed", t);
+
                 runOnUiThread(() -> {
                     showLoading(false);
                     Toast.makeText(LeaderboardActivity.this, 
@@ -180,8 +180,8 @@ public class LeaderboardActivity extends AppCompatActivity {
     }
     
     private void processAndDisplayUsers(List<User> users) {
-        android.util.Log.d("LeaderboardActivity", "========== PROCESSING ==========");
-        android.util.Log.d("LeaderboardActivity", "Processing " + users.size() + " users");
+
+
         
         // Sort by karma (highest first)
         java.util.Collections.sort(users, (u1, u2) -> {
@@ -189,20 +189,20 @@ public class LeaderboardActivity extends AppCompatActivity {
         });
         
         // Log top 5 after sorting
-        android.util.Log.d("LeaderboardActivity", "Top 5 after sorting:");
+
         for (int i = 0; i < Math.min(5, users.size()); i++) {
             User u = users.get(i);
-            android.util.Log.d("LeaderboardActivity", (i+1) + ". " + u.getName() + " - Karma: " + u.getKarma());
+
         }
         
         runOnUiThread(() -> {
             showLoading(false);
             
             if (!users.isEmpty()) {
-                android.util.Log.d("LeaderboardActivity", "Displaying " + users.size() + " users in UI");
+
                 displayLeaderboard(users);
             } else {
-                android.util.Log.w("LeaderboardActivity", "No users to display!");
+
                 Toast.makeText(this, "Không có dữ liệu xếp hạng", Toast.LENGTH_SHORT).show();
             }
         });
@@ -215,18 +215,18 @@ public class LeaderboardActivity extends AppCompatActivity {
         executorService.execute(() -> {
             List<User> users = database.userDao().getTopKarmaUsers(100); // Get top 100
             
-            android.util.Log.d("LeaderboardActivity", "========== LEADERBOARD DEBUG ==========");
-            android.util.Log.d("LeaderboardActivity", "Loaded " + (users != null ? users.size() : 0) + " users from local DB");
+
+
             
             // Debug: Print all users với karma
             if (users != null && users.size() > 0) {
-                android.util.Log.d("LeaderboardActivity", "Top 10 users:");
+
                 for (int i = 0; i < Math.min(10, users.size()); i++) {
                     User u = users.get(i);
-                    android.util.Log.d("LeaderboardActivity", (i+1) + ". " + u.getName() + " - Karma: " + u.getKarma() + " (ID: " + u.getId() + ")");
+
                 }
             } else {
-                android.util.Log.w("LeaderboardActivity", "⚠️ No users in local database!");
+
             }
 
             // Ensure users list is mutable
@@ -247,7 +247,7 @@ public class LeaderboardActivity extends AppCompatActivity {
                 currentUser.setEmail(prefsManager.getUserEmail());
                 currentUser.setKarma(prefsManager.getUserKarma());
                 
-                android.util.Log.d("LeaderboardActivity", "Current user: " + currentUser.getName() + " - Karma: " + currentUser.getKarma());
+
                 
                 // Check if current user already in list
                 boolean userExists = false;
@@ -256,14 +256,14 @@ public class LeaderboardActivity extends AppCompatActivity {
                         userExists = true;
                         // Update karma if changed
                         u.setKarma(currentUser.getKarma());
-                        android.util.Log.d("LeaderboardActivity", "Updated existing user karma");
+
                         break;
                     }
                 }
                 
                 if (!userExists && currentUser.getId() > 0) {
                     users.add(currentUser);
-                    android.util.Log.d("LeaderboardActivity", "Added current user to list");
+
                 }
             }
             
@@ -272,7 +272,7 @@ public class LeaderboardActivity extends AppCompatActivity {
                 return Integer.compare(u2.getKarma(), u1.getKarma());
             });
             
-            android.util.Log.d("LeaderboardActivity", "Final sorted list size: " + users.size());
+
 
             List<User> finalUsers = users;
             runOnUiThread(() -> {
@@ -282,7 +282,7 @@ public class LeaderboardActivity extends AppCompatActivity {
                     displayLeaderboard(finalUsers);
                 } else {
                     // Generate sample data for demo
-                    android.util.Log.d("LeaderboardActivity", "Using sample data");
+
                     List<User> sampleUsers = generateSampleData();
                     displayLeaderboard(sampleUsers);
                 }

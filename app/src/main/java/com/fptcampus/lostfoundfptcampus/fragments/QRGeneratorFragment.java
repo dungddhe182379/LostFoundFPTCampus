@@ -214,7 +214,7 @@ public class QRGeneratorFragment extends Fragment {
                         }
                     }
                     
-                    android.util.Log.d("QRGenerator", "Loaded " + allItems.size() + " items for user " + userId);
+
                     
                     setupAdapter();
                     filterItemsByStatus("found"); // Default to "found" tab
@@ -229,7 +229,7 @@ public class QRGeneratorFragment extends Fragment {
             public void onFailure(Call<ApiResponse<List<LostItem>>> call, Throwable t) {
                 showLoading(false);
                 if (isAdded()) {
-                    android.util.Log.e("QRGenerator", "Error loading items: " + t.getMessage());
+
                     Toast.makeText(requireContext(), "Lỗi: " + t.getMessage(), 
                             Toast.LENGTH_SHORT).show();
                 }
@@ -257,7 +257,7 @@ public class QRGeneratorFragment extends Fragment {
                     preselectedItem = response.body().getData();
                     selectedItem = preselectedItem;
                     
-                    android.util.Log.d("QRGenerator", "Loaded preselected item: " + selectedItem.getTitle());
+
                     
                     // Hide item selection card, show selected item
                     cardItemSelection.setVisibility(View.GONE);
@@ -277,7 +277,7 @@ public class QRGeneratorFragment extends Fragment {
             public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
                 showLoading(false);
                 if (isAdded()) {
-                    android.util.Log.e("QRGenerator", "Error loading item: " + t.getMessage());
+
                     Toast.makeText(requireContext(), "Lỗi: " + t.getMessage(), 
                             Toast.LENGTH_SHORT).show();
                 }
@@ -351,11 +351,6 @@ public class QRGeneratorFragment extends Fragment {
             long serverTime = ServerTimeSync.getServerTime();
             currentQrToken = "TOKEN_" + serverTime;
             
-            // Log time info for debugging
-            android.util.Log.d("QRGenerator", "Server time offset: " + 
-                ServerTimeSync.getServerTimeOffsetHours() + " hours");
-            android.util.Log.d("QRGenerator", "Generated token: " + currentQrToken);
-            
             // Create QR content (JSON format)
             String qrContent = String.format(
                 "{\"itemId\":%d,\"title\":\"%s\",\"token\":\"%s\"}",
@@ -364,7 +359,7 @@ public class QRGeneratorFragment extends Fragment {
                 currentQrToken
             );
             
-            android.util.Log.d("QRGenerator", "Generating QR with content: " + qrContent);
+
             
             // Generate QR code bitmap
             currentQrBitmap = createQrBitmap(qrContent, QR_CODE_SIZE, QR_CODE_SIZE);
@@ -378,7 +373,7 @@ public class QRGeneratorFragment extends Fragment {
                     Toast.LENGTH_SHORT).show();
             
         } catch (Exception e) {
-            android.util.Log.e("QRGenerator", "Error generating QR code", e);
+
             Toast.makeText(requireContext(), "Lỗi tạo mã QR: " + e.getMessage(), 
                     Toast.LENGTH_SHORT).show();
         }
@@ -431,7 +426,7 @@ public class QRGeneratorFragment extends Fragment {
             startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ mã QR"));
             
         } catch (Exception e) {
-            android.util.Log.e("QRGenerator", "Error sharing QR code", e);
+
             Toast.makeText(requireContext(), "Lỗi chia sẻ: " + e.getMessage(), 
                     Toast.LENGTH_SHORT).show();
         }

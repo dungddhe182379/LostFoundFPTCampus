@@ -125,9 +125,9 @@ public class ProfileFragment extends Fragment {
                         });
                     }
                     
-                    android.util.Log.d("ProfileFragment", "User profile loaded from API: " + user.getName() + ", Karma: " + user.getKarma());
+
                 } else {
-                    android.util.Log.e("ProfileFragment", "Failed to load profile from API");
+
                     loadUserProfileFromPrefs();
                 }
             }
@@ -136,7 +136,7 @@ public class ProfileFragment extends Fragment {
             public void onFailure(
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call,
                 Throwable t) {
-                android.util.Log.e("ProfileFragment", "API call failed, loading from cache", t);
+
                 loadUserProfileFromPrefs();
             }
         });
@@ -209,7 +209,7 @@ public class ProfileFragment extends Fragment {
                     
                     final int finalTotalItems = totalItems;
                     
-                    android.util.Log.d("ProfileFragment", "Total items related to user: " + finalTotalItems);
+
                     
                     // Check if fragment is still attached before updating UI
                     if (isAdded() && getActivity() != null) {
@@ -224,7 +224,7 @@ public class ProfileFragment extends Fragment {
             public void onFailure(
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> call,
                 Throwable t) {
-                android.util.Log.e("ProfileFragment", "Failed to load statistics", t);
+
                 // Check if fragment is still attached before updating UI
                 if (isAdded() && getActivity() != null) {
                     requireActivity().runOnUiThread(() -> {
