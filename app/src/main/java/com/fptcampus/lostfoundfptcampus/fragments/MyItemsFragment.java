@@ -19,8 +19,10 @@ import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
+import com.fptcampus.lostfoundfptcampus.util.NetworkUtil;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.tabs.TabLayout;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -132,9 +134,27 @@ public class MyItemsFragment extends Fragment {
     }
 
     private void loadMyItems() {
+        // Check network FIRST (giống LeaderboardActivity)
+        if (!NetworkUtil.isNetworkAvailable(requireContext())) {
+            swipeRefresh.setRefreshing(false);
+            Toast.makeText(requireContext(), "Không có kết nối mạng. Vui lòng kiểm tra và thử lại.", Toast.LENGTH_LONG).show();
+            
+            // Hiển thị empty state
+            if (isAdded() && getActivity() != null) {
+                requireActivity().runOnUiThread(() -> {
+                    tvEmptyState.setVisibility(View.VISIBLE);
+                    tvEmptyState.setText("Không có kết nối mạng");
+                    recyclerView.setVisibility(View.GONE);
+                });
+            }
+            return;
+        }
+        
         swipeRefresh.setRefreshing(true);
         long currentUserId = prefsManager.getUserId();
         String token = "Bearer " + prefsManager.getToken();
+        
+        android.util.Log.d("MyItems", "Loading items for user " + currentUserId + " with filter: " + currentFilter);
         
         // Call API to get ALL items
         com.fptcampus.lostfoundfptcampus.model.api.ItemApi itemApi = 
@@ -151,11 +171,16 @@ public class MyItemsFragment extends Fragment {
                 
                 swipeRefresh.setRefreshing(false);
                 
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    List<LostItem> allItems = response.body().getData();
-                    List<LostItem> filteredItems = new ArrayList<>();
+                if (response.isSuccessful() && response.body() != null) {
+                    com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>> apiResponse = response.body();
                     
-                    if (allItems != null) {
+                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                        // Success!
+                        List<LostItem> allItems = apiResponse.getData();
+                        List<LostItem> filteredItems = new ArrayList<>();
+                        
+                        android.util.Log.d("MyItems", "Received " + allItems.size() + " items from API");
+                        
                         // Filter theo user roles và status - LOGIC CHUẨN
                         for (LostItem item : allItems) {
                             boolean shouldAdd = false;
@@ -201,26 +226,48 @@ public class MyItemsFragment extends Fragment {
                                 filteredItems.add(item);
                             }
                         }
-                    }
-                    
-
-                    
-                    if (isAdded() && getActivity() != null) {
-                        requireActivity().runOnUiThread(() -> {
-                            if (filteredItems.isEmpty()) {
-                                tvEmptyState.setVisibility(View.VISIBLE);
-                                recyclerView.setVisibility(View.GONE);
-                                updateEmptyStateMessage();
-                            } else {
-                                tvEmptyState.setVisibility(View.GONE);
-                                recyclerView.setVisibility(View.VISIBLE);
-                                adapter.setItems(filteredItems);
-                            }
-                        });
+                        
+                        android.util.Log.d("MyItems", "Filtered to " + filteredItems.size() + " items");
+                        
+                        if (isAdded() && getActivity() != null) {
+                            requireActivity().runOnUiThread(() -> {
+                                if (filteredItems.isEmpty()) {
+                                    tvEmptyState.setVisibility(View.VISIBLE);
+                                    recyclerView.setVisibility(View.GONE);
+                                    updateEmptyStateMessage();
+                                } else {
+                                    tvEmptyState.setVisibility(View.GONE);
+                                    recyclerView.setVisibility(View.VISIBLE);
+                                    adapter.setItems(filteredItems);
+                                }
+                            });
+                        }
+                    } else {
+                        // API returned error
+                        String errorMsg = apiResponse.getError() != null ? apiResponse.getError() : "Không thể tải danh sách";
+                        android.util.Log.e("MyItems", "API Error: " + errorMsg);
+                        
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
+                            tvEmptyState.setVisibility(View.VISIBLE);
+                            tvEmptyState.setText(errorMsg);
+                            recyclerView.setVisibility(View.GONE);
+                        }
                     }
                 } else {
-
-                    loadMyItemsFromDatabase(); // Fallback to database
+                    // HTTP error
+                    String errorMsg = "Lỗi server: " + response.code();
+                    if (response.message() != null) {
+                        errorMsg += " - " + response.message();
+                    }
+                    android.util.Log.e("MyItems", "HTTP Error: " + response.code() + " - " + response.message());
+                    
+                    if (isAdded()) {
+                        Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                        tvEmptyState.setVisibility(View.VISIBLE);
+                        tvEmptyState.setText("Lỗi tải dữ liệu");
+                        recyclerView.setVisibility(View.GONE);
+                    }
                 }
             }
             
@@ -229,65 +276,16 @@ public class MyItemsFragment extends Fragment {
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>> call,
                 Throwable t) {
                 swipeRefresh.setRefreshing(false);
-
-                loadMyItemsFromDatabase(); // Fallback to database
-            }
-        });
-    }
-    
-    private void loadMyItemsFromDatabase() {
-        long currentUserId = prefsManager.getUserId();
-        
-        executorService.execute(() -> {
-            // Fallback: Lấy từ database local với logic tương tự
-            List<LostItem> allItems = database.lostItemDao().getAllItems();
-            List<LostItem> filteredItems = new ArrayList<>();
-            
-            for (LostItem item : allItems) {
-                boolean shouldAdd = false;
-                String status = item.getStatus() != null ? item.getStatus().toLowerCase() : "";
                 
-                switch (currentFilter) {
-                    case "all":
-                        shouldAdd = (item.getLostUserId() != null && item.getLostUserId() == currentUserId) ||
-                                    (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId);
-                        break;
-                    case "lost":
-                        shouldAdd = "lost".equals(status) && 
-                                    item.getLostUserId() != null && item.getLostUserId() == currentUserId;
-                        break;
-                    case "found":
-                        shouldAdd = "found".equals(status) && 
-                                    item.getFoundUserId() != null && item.getFoundUserId() == currentUserId;
-                        break;
-                    case "given_back":
-                        shouldAdd = "returned".equals(status) && 
-                                    item.getFoundUserId() != null && item.getFoundUserId() == currentUserId;
-                        break;
-                    case "received_back":
-                        shouldAdd = "returned".equals(status) && 
-                                    item.getLostUserId() != null && item.getLostUserId() == currentUserId &&
-                                    item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId;
-                        break;
-                }
+                String errorMsg = "Lỗi kết nối: " + t.getMessage();
+                android.util.Log.e("MyItems", "Network Error", t);
                 
-                if (shouldAdd) {
-                    filteredItems.add(item);
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                    tvEmptyState.setVisibility(View.VISIBLE);
+                    tvEmptyState.setText("Lỗi kết nối mạng");
+                    recyclerView.setVisibility(View.GONE);
                 }
-            }
-
-            if (isAdded() && getActivity() != null) {
-                requireActivity().runOnUiThread(() -> {
-                    if (filteredItems.isEmpty()) {
-                        tvEmptyState.setVisibility(View.VISIBLE);
-                        recyclerView.setVisibility(View.GONE);
-                        updateEmptyStateMessage();
-                    } else {
-                        tvEmptyState.setVisibility(View.GONE);
-                        recyclerView.setVisibility(View.VISIBLE);
-                        adapter.setItems(filteredItems);
-                    }
-                });
             }
         });
     }

@@ -5,6 +5,9 @@ import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -25,10 +28,14 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.fptcampus.lostfoundfptcampus.R;
+import com.fptcampus.lostfoundfptcampus.MainActivity;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
+import com.fptcampus.lostfoundfptcampus.util.NetworkUtil;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
@@ -49,6 +56,7 @@ public class ReportItemFragment extends Fragment {
     
     private static final int PICK_IMAGE_REQUEST = 1;
     private static final int PERMISSION_REQUEST_CODE = 100;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 101;
     
     private ChipGroup chipGroupReportType;
     private Chip chipLost, chipFound;
@@ -56,12 +64,15 @@ public class ReportItemFragment extends Fragment {
     private TextInputEditText etTitle, etDescription, etLocation, etDate, etContactInfo;
     private ImageView ivItemImage;
     private LinearLayout ivAddImage;
-    private MaterialButton btnSubmit, btnClear;
+    private MaterialButton btnSubmit, btnClear, btnGetCurrentLocation;
     
     private SharedPreferencesManager prefsManager;
+    private FusedLocationProviderClient fusedLocationClient;
     private String selectedImageBase64 = null;
     private String reportType = "lost"; // "lost" or "found"
     private Calendar selectedDate;
+    private Double selectedLatitude = null;
+    private Double selectedLongitude = null;
     
     @Nullable
     @Override
@@ -74,6 +85,7 @@ public class ReportItemFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         
         prefsManager = new SharedPreferencesManager(requireContext());
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
         selectedDate = Calendar.getInstance();
         
         bindingView(view);
@@ -93,6 +105,9 @@ public class ReportItemFragment extends Fragment {
         etContactInfo = view.findViewById(R.id.etContactInfo);
         ivItemImage = view.findViewById(R.id.ivItemImage);
         ivAddImage = view.findViewById(R.id.ivAddImage);
+        btnSubmit = view.findViewById(R.id.btnSubmit);
+        btnClear = view.findViewById(R.id.btnClear);
+        btnGetCurrentLocation = view.findViewById(R.id.btnGetCurrentLocation);
         btnSubmit = view.findViewById(R.id.btnSubmit);
         btnClear = view.findViewById(R.id.btnClear);
         
@@ -116,20 +131,21 @@ public class ReportItemFragment extends Fragment {
     
     private void bindingAction() {
         // Report type selection
-        chipGroupReportType.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (!checkedIds.isEmpty()) {
-                int selectedId = checkedIds.get(0);
-                if (selectedId == R.id.chipLost) {
-                    reportType = "lost";
-                } else if (selectedId == R.id.chipFound) {
-                    reportType = "found";
-                }
+        chipGroupReportType.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.chipLost) {
+                reportType = "lost";
+                updateUIForReportType();
+            } else if (checkedId == R.id.chipFound) {
+                reportType = "found";
                 updateUIForReportType();
             }
         });
         
         // Date picker
         etDate.setOnClickListener(v -> showDatePicker());
+        
+        // Get current location button
+        btnGetCurrentLocation.setOnClickListener(v -> getCurrentLocation());
         
         // Image picker
         ivAddImage.setOnClickListener(v -> checkPermissionAndPickImage());
@@ -175,6 +191,68 @@ public class ReportItemFragment extends Fragment {
     private void updateDateField() {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         etDate.setText(sdf.format(selectedDate.getTime()));
+    }
+    
+    private void getCurrentLocation() {
+        // Check location permission
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(),
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+            return;
+        }
+        
+        // Show loading
+        btnGetCurrentLocation.setEnabled(false);
+        btnGetCurrentLocation.setText("Đang lấy vị trí...");
+        
+        // Get last known location
+        fusedLocationClient.getLastLocation()
+            .addOnSuccessListener(requireActivity(), location -> {
+                btnGetCurrentLocation.setEnabled(true);
+                btnGetCurrentLocation.setText("📍 Lấy vị trí hiện tại");
+                
+                if (location != null) {
+                    selectedLatitude = location.getLatitude();
+                    selectedLongitude = location.getLongitude();
+                    
+                    // Try to get address from coordinates
+                    getAddressFromLocation(location);
+                } else {
+                    Toast.makeText(requireContext(), "Không thể lấy vị trí. Vui lòng bật GPS.", Toast.LENGTH_SHORT).show();
+                }
+            })
+            .addOnFailureListener(e -> {
+                btnGetCurrentLocation.setEnabled(true);
+                btnGetCurrentLocation.setText("📍 Lấy vị trí hiện tại");
+                Toast.makeText(requireContext(), "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
+    }
+    
+    private void getAddressFromLocation(Location location) {
+        try {
+            Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
+            java.util.List<Address> addresses = geocoder.getFromLocation(
+                location.getLatitude(), 
+                location.getLongitude(), 
+                1
+            );
+            
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                String addressText = address.getAddressLine(0);
+                etLocation.setText(addressText);
+            } else {
+                // No address found, use coordinates
+                etLocation.setText(String.format(Locale.getDefault(), 
+                    "%.6f, %.6f", location.getLatitude(), location.getLongitude()));
+            }
+        } catch (Exception e) {
+            // Geocoder failed, use coordinates
+            etLocation.setText(String.format(Locale.getDefault(), 
+                "%.6f, %.6f", location.getLatitude(), location.getLongitude()));
+        }
     }
     
     private void checkPermissionAndPickImage() {
@@ -224,6 +302,25 @@ public class ReportItemFragment extends Fragment {
         }
     }
     
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openImagePicker();
+            } else {
+                Toast.makeText(requireContext(), "Cần cấp quyền để chọn ảnh", Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getCurrentLocation();
+            } else {
+                Toast.makeText(requireContext(), "Cần cấp quyền truy cập vị trí", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+    
     private Bitmap resizeBitmap(Bitmap bitmap, int maxWidth, int maxHeight) {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
@@ -244,6 +341,12 @@ public class ReportItemFragment extends Fragment {
     }
     
     private void submitReport() {
+        // Check network FIRST (giống LeaderboardActivity)
+        if (!NetworkUtil.isNetworkAvailable(requireContext())) {
+            Toast.makeText(requireContext(), "Không có kết nối mạng. Vui lòng kiểm tra và thử lại.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        
         // Validate inputs
         String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
         String description = etDescription.getText() != null ? etDescription.getText().toString().trim() : "";
@@ -281,44 +384,71 @@ public class ReportItemFragment extends Fragment {
         request.setCategory(category);
         request.setStatus(reportType); // "lost" or "found"
         
-        // Parse location to lat/lng (simplified - using placeholder for now)
-        // TODO: Implement proper geocoding or location picker
-        request.setLatitude(null);
-        request.setLongitude(null);
+        // Set location coordinates (use selected or default FPT campus location)
+        request.setLatitude(selectedLatitude != null ? selectedLatitude : 21.0138);
+        request.setLongitude(selectedLongitude != null ? selectedLongitude : 105.5253);
         
         // Image
         if (selectedImageBase64 != null) {
             request.setImageUrl(selectedImageBase64);
+            android.util.Log.d("ReportItem", "Image size: " + selectedImageBase64.length() + " characters");
         }
         
         // Show loading
         btnSubmit.setEnabled(false);
         btnSubmit.setText("Đang gửi...");
         
-        // Submit to API
+        // Log request data (without full image to avoid log overflow)
+        android.util.Log.d("ReportItem", "Submitting: " + request.getTitle() + 
+            " | Category: " + request.getCategory() + 
+            " | Status: " + request.getStatus() +
+            " | Lat/Lng: " + request.getLatitude() + "," + request.getLongitude());
+        
+        // Submit to API (giống LeaderboardActivity pattern)
         String token = prefsManager.getToken();
-        ApiClient.getItemApi().createItem("Bearer " + token, request)
-            .enqueue(new Callback<ApiResponse<LostItem>>() {
-                @Override
-                public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
-                    btnSubmit.setEnabled(true);
-                    btnSubmit.setText(reportType.equals("lost") ? "Báo Mất Đồ" : "Báo Nhặt Được Đồ");
+        Call<ApiResponse<LostItem>> call = ApiClient.getItemApi().createItem("Bearer " + token, request);
+        
+        call.enqueue(new Callback<ApiResponse<LostItem>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
+                btnSubmit.setEnabled(true);
+                btnSubmit.setText(reportType.equals("lost") ? "Báo Mất Đồ" : "Báo Nhặt Được Đồ");
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse<LostItem> apiResponse = response.body();
                     
-                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                        Toast.makeText(requireContext(), "Đã gửi báo cáo thành công!", Toast.LENGTH_SHORT).show();
+                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                        // Success!
+                        Toast.makeText(requireContext(), "✅ Đã gửi báo cáo thành công!", Toast.LENGTH_SHORT).show();
+                        android.util.Log.d("ReportItem", "Success: Item created with ID " + apiResponse.getData().getId());
                         clearForm();
                     } else {
-                        Toast.makeText(requireContext(), "Không thể gửi báo cáo", Toast.LENGTH_SHORT).show();
+                        // API returned error
+                        String errorMsg = apiResponse.getError() != null ? apiResponse.getError() : "Không thể tạo báo cáo";
+                        Toast.makeText(requireContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
+                        android.util.Log.e("ReportItem", "API Error: " + errorMsg);
                     }
+                } else {
+                    // HTTP error
+                    String errorMsg = "Lỗi server: " + response.code();
+                    if (response.message() != null) {
+                        errorMsg += " - " + response.message();
+                    }
+                    Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                    android.util.Log.e("ReportItem", "HTTP Error: " + response.code() + " - " + response.message());
                 }
+            }
+            
+            @Override
+            public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
+                btnSubmit.setEnabled(true);
+                btnSubmit.setText(reportType.equals("lost") ? "Báo Mất Đồ" : "Báo Nhặt Được Đồ");
                 
-                @Override
-                public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
-                    btnSubmit.setEnabled(true);
-                    btnSubmit.setText(reportType.equals("lost") ? "Báo Mất Đồ" : "Báo Nhặt Được Đồ");
-                    Toast.makeText(requireContext(), "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            });
+                String errorMsg = "Lỗi kết nối: " + t.getMessage();
+                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                android.util.Log.e("ReportItem", "Network Error", t);
+            }
+        });
     }
     
     private void clearForm() {

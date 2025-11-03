@@ -81,23 +81,24 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         app:singleSelection="true"
-                        app:selectionRequired="true">
+                        app:selectionRequired="true"
+                        app:checkedChip="@id/chipLost">
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipLost"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="🔍 Mất đồ"
+                            android:checkable="true"
                             android:checked="true"
                             style="@style/Widget.MaterialComponents.Chip.Choice"/>
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipFound"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="✋ Nhặt được"
+                            android:checkable="true"
                             style="@style/Widget.MaterialComponents.Chip.Choice"/>
 
                     </com.google.android.material.chip.ChipGroup>
@@ -181,24 +182,43 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Location -->
-                    <com.google.android.material.textfield.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Vị trí"
-                        android:layout_marginTop="12dp"
-                        app:boxBackgroundMode="outline"
-                        app:startIconDrawable="@android:drawable/ic_menu_mylocation"
-                        app:startIconTint="@color/primary"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                        android:orientation="vertical"
+                        android:layout_marginTop="12dp">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etLocation"
+                        <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text"
-                            android:maxLines="1"/>
+                            android:hint="Vị trí"
+                            app:boxBackgroundMode="outline"
+                            app:startIconDrawable="@android:drawable/ic_menu_mylocation"
+                            app:startIconTint="@color/primary"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etLocation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text"
+                                android:maxLines="2"/>
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnGetCurrentLocation"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end"
+                            android:text="📍 Lấy vị trí hiện tại"
+                            android:textColor="@color/primary"
+                            app:icon="@android:drawable/ic_menu_mylocation"
+                            app:iconTint="@color/primary"
+                            android:layout_marginTop="4dp"/>
+
+                    </LinearLayout>
 
                     <!-- Date -->
                     <com.google.android.material.textfield.TextInputLayout

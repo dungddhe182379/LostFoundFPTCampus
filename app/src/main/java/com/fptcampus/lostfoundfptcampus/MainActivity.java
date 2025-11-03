@@ -46,10 +46,10 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         setupBottomNavigation();
         setupBackPressedHandler();
         
-        // Load default fragment (Leaderboard)
+        // Load default fragment (Home)
         if (savedInstanceState == null) {
-            loadLeaderboardFragment();
-            bottomNavigation.setSelectedItemId(R.id.navigation_leaderboard);
+            loadHomeFragment();
+            bottomNavigation.setSelectedItemId(R.id.navigation_home);
         }
         
         // Initialize sync service
@@ -85,8 +85,8 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
             } else if (itemId == R.id.navigation_items) {
                 navigateToItemsList();
                 return true;
-            } else if (itemId == R.id.navigation_report) {
-                loadReportFragment();
+            } else if (itemId == R.id.navigation_home) {
+                loadHomeFragment();
                 return true;
             } else if (itemId == R.id.navigation_map) {
                 navigateToMap();
@@ -98,6 +98,13 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
             
             return false;
         });
+    }
+    
+    private void loadHomeFragment() {
+        Fragment homeFragment = new com.fptcampus.lostfoundfptcampus.fragments.HomeFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, homeFragment)
+                .commit();
     }
 
     private void loadLeaderboardFragment() {

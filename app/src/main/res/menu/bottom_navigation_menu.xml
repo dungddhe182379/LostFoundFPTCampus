@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Left side items -->
     <item
         android:id="@+id/navigation_leaderboard"
         android:icon="@android:drawable/star_big_on"
@@ -10,11 +11,13 @@
         android:icon="@drawable/ic_search"
         android:title="Đồ vật" />
     
+    <!-- Center - Home -->
     <item
-        android:id="@+id/navigation_report"
-        android:icon="@android:drawable/ic_menu_add"
-        android:title="Báo cáo" />
+        android:id="@+id/navigation_home"
+        android:icon="@drawable/ic_home"
+        android:title="Trang chủ" />
     
+    <!-- Right side items -->
     <item
         android:id="@+id/navigation_map"
         android:icon="@drawable/ic_map"

@@ -31,7 +31,7 @@ public class HomeFragment extends Fragment {
     
     private TextView tvWelcome, tvKarma;
     private TextView tvMyLostCount, tvMyFoundCount, tvGivenBackCount, tvReceivedBackCount;
-    private MaterialCardView cardReportLost, cardReportFound, cardViewMap;
+    private MaterialCardView cardReport, cardViewMap;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -68,22 +68,17 @@ public class HomeFragment extends Fragment {
         tvMyFoundCount = view.findViewById(R.id.tvMyFoundCount);
         tvGivenBackCount = view.findViewById(R.id.tvGivenBackCount);  // Đã trả (tôi nhặt và trả)
         tvReceivedBackCount = view.findViewById(R.id.tvReceivedBackCount);  // Đã nhận (tôi mất và nhận lại)
-        cardReportLost = view.findViewById(R.id.cardReportLost);
-        cardReportFound = view.findViewById(R.id.cardReportFound);
+        cardReport = view.findViewById(R.id.cardReport);
         cardViewMap = view.findViewById(R.id.cardViewMap);
     }
 
     private void setupClickListeners() {
-        cardReportLost.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), AddItemActivity.class);
-            intent.putExtra("STATUS", "lost");
-            startActivity(intent);
-        });
-
-        cardReportFound.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), AddItemActivity.class);
-            intent.putExtra("STATUS", "found");
-            startActivity(intent);
+        cardReport.setOnClickListener(v -> {
+            // Navigate to ReportItemFragment
+            if (navigationHost != null) {
+                ReportItemFragment reportFragment = new ReportItemFragment();
+                navigationHost.navigateTo(reportFragment, true);
+            }
         });
 
         cardViewMap.setOnClickListener(v -> {
