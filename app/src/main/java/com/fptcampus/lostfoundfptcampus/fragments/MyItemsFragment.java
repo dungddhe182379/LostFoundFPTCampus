@@ -97,6 +97,7 @@ public class MyItemsFragment extends Fragment {
         tabLayout.addTab(tabLayout.newTab().setText("Đã mất"));
         tabLayout.addTab(tabLayout.newTab().setText("Đã nhặt"));
         tabLayout.addTab(tabLayout.newTab().setText("Đã trả"));
+        tabLayout.addTab(tabLayout.newTab().setText("Đã nhận"));
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -112,7 +113,10 @@ public class MyItemsFragment extends Fragment {
                         currentFilter = "found";
                         break;
                     case 3:
-                        currentFilter = "returned";
+                        currentFilter = "given_back";  // Đã trả (tôi nhặt và trả)
+                        break;
+                    case 4:
+                        currentFilter = "received_back";  // Đã nhận (tôi mất và nhận lại)
                         break;
                 }
                 loadMyItems();
@@ -129,54 +133,161 @@ public class MyItemsFragment extends Fragment {
     private void loadMyItems() {
         swipeRefresh.setRefreshing(true);
         long currentUserId = prefsManager.getUserId();
-
-        executorService.execute(() -> {
-            // Lấy TẤT CẢ items từ database
-            List<LostItem> allItems = database.lostItemDao().getAllItems();
-            List<LostItem> filteredItems = new java.util.ArrayList<>();
+        String token = "Bearer " + prefsManager.getToken();
+        
+        // Call API to get ALL items
+        com.fptcampus.lostfoundfptcampus.model.api.ItemApi itemApi = 
+            com.fptcampus.lostfoundfptcampus.util.ApiClient.getItemApi();
+        
+        retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>> call = 
+            itemApi.getAllItems(token);
+        
+        call.enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>>() {
+            @Override
+            public void onResponse(
+                retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>> call,
+                retrofit2.Response<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>> response) {
+                
+                swipeRefresh.setRefreshing(false);
+                
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    List<LostItem> allItems = response.body().getData();
+                    List<LostItem> filteredItems = new ArrayList<>();
+                    
+                    if (allItems != null) {
+                        // Filter theo user roles và status - LOGIC CHUẨN
+                        for (LostItem item : allItems) {
+                            boolean shouldAdd = false;
+                            String status = item.getStatus() != null ? item.getStatus().toLowerCase() : "";
+                            
+                            switch (currentFilter) {
+                                case "all":
+                                    // Tất cả items liên quan (lostUserId hoặc foundUserId = tôi)
+                                    shouldAdd = (item.getLostUserId() != null && item.getLostUserId() == currentUserId) ||
+                                                (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId);
+                                    break;
+                                    
+                                case "lost":
+                                    // Đã mất = lostUserId=tôi VÀ status="lost"
+                                    shouldAdd = "lost".equals(status) && 
+                                                item.getLostUserId() != null && 
+                                                item.getLostUserId() == currentUserId;
+                                    break;
+                                    
+                                case "found":
+                                    // Đã nhặt = foundUserId=tôi VÀ status="found"
+                                    shouldAdd = "found".equals(status) && 
+                                                item.getFoundUserId() != null && 
+                                                item.getFoundUserId() == currentUserId;
+                                    break;
+                                    
+                                case "given_back":
+                                    // Đã trả = foundUserId=tôi VÀ status="returned" (tôi nhặt và đã trả cho chủ)
+                                    shouldAdd = "returned".equals(status) && 
+                                                item.getFoundUserId() != null && 
+                                                item.getFoundUserId() == currentUserId;
+                                    break;
+                                    
+                                case "received_back":
+                                    // Đã nhận = lostUserId=tôi VÀ returnedUserId=tôi VÀ status="returned" (tôi mất và đã nhận lại)
+                                    shouldAdd = "returned".equals(status) && 
+                                                item.getLostUserId() != null && item.getLostUserId() == currentUserId &&
+                                                item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId;
+                                    break;
+                            }
+                            
+                            if (shouldAdd) {
+                                filteredItems.add(item);
+                            }
+                        }
+                    }
+                    
+                    android.util.Log.d("MyItemsFragment", "Found " + filteredItems.size() + " items for user " + currentUserId + " with filter: " + currentFilter);
+                    
+                    if (isAdded() && getActivity() != null) {
+                        requireActivity().runOnUiThread(() -> {
+                            if (filteredItems.isEmpty()) {
+                                tvEmptyState.setVisibility(View.VISIBLE);
+                                recyclerView.setVisibility(View.GONE);
+                                updateEmptyStateMessage();
+                            } else {
+                                tvEmptyState.setVisibility(View.GONE);
+                                recyclerView.setVisibility(View.VISIBLE);
+                                adapter.setItems(filteredItems);
+                            }
+                        });
+                    }
+                } else {
+                    android.util.Log.e("MyItemsFragment", "Failed to load items from API");
+                    loadMyItemsFromDatabase(); // Fallback to database
+                }
+            }
             
-            // Filter theo 3 role fields (lostUserId, foundUserId, returnedUserId)
+            @Override
+            public void onFailure(
+                retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>>> call,
+                Throwable t) {
+                swipeRefresh.setRefreshing(false);
+                android.util.Log.e("MyItemsFragment", "API call failed, loading from database", t);
+                loadMyItemsFromDatabase(); // Fallback to database
+            }
+        });
+    }
+    
+    private void loadMyItemsFromDatabase() {
+        long currentUserId = prefsManager.getUserId();
+        
+        executorService.execute(() -> {
+            // Fallback: Lấy từ database local với logic tương tự
+            List<LostItem> allItems = database.lostItemDao().getAllItems();
+            List<LostItem> filteredItems = new ArrayList<>();
+            
             for (LostItem item : allItems) {
-                boolean isRelated = false;
-                boolean matchesStatus = true;
+                boolean shouldAdd = false;
+                String status = item.getStatus() != null ? item.getStatus().toLowerCase() : "";
                 
-                // Check xem user có liên quan đến item này không
-                if (item.getLostUserId() != null && item.getLostUserId() == currentUserId) {
-                    isRelated = true;
-                }
-                if (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId) {
-                    isRelated = true;
-                }
-                if (item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId) {
-                    isRelated = true;
+                switch (currentFilter) {
+                    case "all":
+                        shouldAdd = (item.getLostUserId() != null && item.getLostUserId() == currentUserId) ||
+                                    (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId);
+                        break;
+                    case "lost":
+                        shouldAdd = "lost".equals(status) && 
+                                    item.getLostUserId() != null && item.getLostUserId() == currentUserId;
+                        break;
+                    case "found":
+                        shouldAdd = "found".equals(status) && 
+                                    item.getFoundUserId() != null && item.getFoundUserId() == currentUserId;
+                        break;
+                    case "given_back":
+                        shouldAdd = "returned".equals(status) && 
+                                    item.getFoundUserId() != null && item.getFoundUserId() == currentUserId;
+                        break;
+                    case "received_back":
+                        shouldAdd = "returned".equals(status) && 
+                                    item.getLostUserId() != null && item.getLostUserId() == currentUserId &&
+                                    item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId;
+                        break;
                 }
                 
-                // Nếu không phải "all", kiểm tra status filter
-                if (!"all".equals(currentFilter)) {
-                    matchesStatus = currentFilter.equalsIgnoreCase(item.getStatus());
-                }
-                
-                // Thêm vào list nếu có liên quan VÀ match status
-                if (isRelated && matchesStatus) {
+                if (shouldAdd) {
                     filteredItems.add(item);
                 }
             }
 
-            requireActivity().runOnUiThread(() -> {
-                swipeRefresh.setRefreshing(false);
-                
-                android.util.Log.d("MyItemsFragment", "Found " + filteredItems.size() + " items for user " + currentUserId + " with filter: " + currentFilter);
-                
-                if (filteredItems.isEmpty()) {
-                    tvEmptyState.setVisibility(View.VISIBLE);
-                    recyclerView.setVisibility(View.GONE);
-                    updateEmptyStateMessage();
-                } else {
-                    tvEmptyState.setVisibility(View.GONE);
-                    recyclerView.setVisibility(View.VISIBLE);
-                    adapter.setItems(filteredItems);
-                }
-            });
+            if (isAdded() && getActivity() != null) {
+                requireActivity().runOnUiThread(() -> {
+                    if (filteredItems.isEmpty()) {
+                        tvEmptyState.setVisibility(View.VISIBLE);
+                        recyclerView.setVisibility(View.GONE);
+                        updateEmptyStateMessage();
+                    } else {
+                        tvEmptyState.setVisibility(View.GONE);
+                        recyclerView.setVisibility(View.VISIBLE);
+                        adapter.setItems(filteredItems);
+                    }
+                });
+            }
         });
     }
 
@@ -189,8 +300,11 @@ public class MyItemsFragment extends Fragment {
             case "found":
                 message = "📭\n\nBạn chưa báo nhặt được đồ vật nào";
                 break;
-            case "returned":
-                message = "📭\n\nChưa có đồ vật nào được trả";
+            case "given_back":
+                message = "🎁\n\nBạn chưa trả đồ vật nào cho chủ";
+                break;
+            case "received_back":
+                message = "✅\n\nBạn chưa nhận lại đồ vật nào";
                 break;
             default:
                 message = "📭\n\nBạn chưa có đồ vật nào\n\nHãy bắt đầu bằng cách báo mất hoặc báo nhặt được đồ!";

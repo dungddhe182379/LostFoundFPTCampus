@@ -188,31 +188,19 @@ public class ProfileFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem> allItems = response.body().getData();
                     
-                    // Đếm tất cả items liên quan đến user (bất kỳ vai trò nào)
+                    // Đếm tất cả items liên quan đến user
+                    // LOGIC CHUẨN: Chỉ đếm items mà user có vai trò chính (lostUserId hoặc foundUserId)
                     int totalItems = 0;
                     if (allItems != null) {
                         java.util.Set<Long> countedItemIds = new java.util.HashSet<>();
                         
                         for (com.fptcampus.lostfoundfptcampus.model.LostItem item : allItems) {
-                            boolean isRelated = false;
+                            // Chỉ đếm items mà user là người MẤT hoặc người NHẶT
+                            // Không đếm riêng returnedUserId vì nó đã được tính trong lostUserId/foundUserId
+                            boolean isMyLostItem = (item.getLostUserId() != null && item.getLostUserId() == userId);
+                            boolean isMyFoundItem = (item.getFoundUserId() != null && item.getFoundUserId() == userId);
                             
-                            // Check nếu user là người MẤT đồ
-                            if (item.getLostUserId() != null && item.getLostUserId() == userId) {
-                                isRelated = true;
-                            }
-                            
-                            // Check nếu user là người TÌM THẤY đồ
-                            if (item.getFoundUserId() != null && item.getFoundUserId() == userId) {
-                                isRelated = true;
-                            }
-                            
-                            // Check nếu user là người NHẬN LẠI đồ
-                            if (item.getReturnedUserId() != null && item.getReturnedUserId() == userId) {
-                                isRelated = true;
-                            }
-                            
-                            // Nếu có liên quan và chưa đếm (tránh đếm trùng)
-                            if (isRelated && !countedItemIds.contains(item.getId())) {
+                            if ((isMyLostItem || isMyFoundItem) && !countedItemIds.contains(item.getId())) {
                                 totalItems++;
                                 countedItemIds.add(item.getId());
                             }

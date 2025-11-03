@@ -30,7 +30,7 @@ public class HomeFragment extends Fragment {
     private ExecutorService executorService;
     
     private TextView tvWelcome, tvKarma;
-    private TextView tvMyLostCount, tvMyFoundCount, tvReturnedCount;
+    private TextView tvMyLostCount, tvMyFoundCount, tvGivenBackCount, tvReceivedBackCount;
     private MaterialCardView cardReportLost, cardReportFound, cardViewMap;
 
     @Override
@@ -66,7 +66,8 @@ public class HomeFragment extends Fragment {
         tvKarma = view.findViewById(R.id.tvKarma);
         tvMyLostCount = view.findViewById(R.id.tvMyLostCount);
         tvMyFoundCount = view.findViewById(R.id.tvMyFoundCount);
-        tvReturnedCount = view.findViewById(R.id.tvReturnedCount);
+        tvGivenBackCount = view.findViewById(R.id.tvGivenBackCount);  // Đã trả (tôi nhặt và trả)
+        tvReceivedBackCount = view.findViewById(R.id.tvReceivedBackCount);  // Đã nhận (tôi mất và nhận lại)
         cardReportLost = view.findViewById(R.id.cardReportLost);
         cardReportFound = view.findViewById(R.id.cardReportFound);
         cardViewMap = view.findViewById(R.id.cardViewMap);
@@ -168,45 +169,53 @@ public class HomeFragment extends Fragment {
                     java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem> allItems = response.body().getData();
                     
                     if (allItems != null) {
-                        int myLostCount = 0;    // Items tôi BỊ MẤT (lostUserId)
-                        int myFoundCount = 0;   // Items tôi TÌM THẤY (foundUserId)
-                        int returnedCount = 0;  // Items tôi ĐÃ NHẬN LẠI (returnedUserId)
+                        int myLostCount = 0;        // Items tôi BỊ MẤT và chưa tìm thấy
+                        int myFoundCount = 0;       // Items tôi NHẶT ĐƯỢC và chưa trả
+                        int givenBackCount = 0;     // Items tôi NHẶT và ĐÃ TRẢ cho chủ
+                        int receivedBackCount = 0;  // Items tôi MẤT và ĐÃ NHẬN LẠI
                         
                         for (com.fptcampus.lostfoundfptcampus.model.LostItem item : allItems) {
-                            // Đếm items mà user là người MẤT đồ
-                            if (item.getLostUserId() != null && item.getLostUserId() == userId) {
-                                if ("lost".equalsIgnoreCase(item.getStatus())) {
-                                    myLostCount++;
-                                }
+                            String status = item.getStatus() != null ? item.getStatus().toLowerCase() : "";
+                            
+                            // LOGIC CHUẨN - PHÂN LOẠI RÕ RÀNG:
+                            
+                            // 1. Đã mất = lostUserId=tôi VÀ status="lost" (chưa ai nhặt)
+                            if ("lost".equals(status) && item.getLostUserId() != null && item.getLostUserId() == userId) {
+                                myLostCount++;
                             }
                             
-                            // Đếm items mà user là người TÌM THẤY
-                            if (item.getFoundUserId() != null && item.getFoundUserId() == userId) {
-                                if ("found".equalsIgnoreCase(item.getStatus())) {
-                                    myFoundCount++;
-                                }
+                            // 2. Đã nhặt = foundUserId=tôi VÀ status="found" (nhặt rồi nhưng chưa trả)
+                            else if ("found".equals(status) && item.getFoundUserId() != null && item.getFoundUserId() == userId) {
+                                myFoundCount++;
                             }
                             
-                            // Đếm items mà user là người NHẬN LẠI (đã hoàn tất)
-                            if (item.getReturnedUserId() != null && item.getReturnedUserId() == userId) {
-                                if ("returned".equalsIgnoreCase(item.getStatus())) {
-                                    returnedCount++;
-                                }
+                            // 3. Đã trả = foundUserId=tôi VÀ status="returned" (tôi nhặt và đã trả cho người khác)
+                            else if ("returned".equals(status) && item.getFoundUserId() != null && item.getFoundUserId() == userId) {
+                                givenBackCount++;
+                            }
+                            
+                            // 4. Đã nhận = lostUserId=tôi VÀ returnedUserId=tôi VÀ status="returned" (tôi mất và đã nhận lại)
+                            else if ("returned".equals(status) && 
+                                     item.getLostUserId() != null && item.getLostUserId() == userId &&
+                                     item.getReturnedUserId() != null && item.getReturnedUserId() == userId) {
+                                receivedBackCount++;
                             }
                         }
                         
                         final int finalLostCount = myLostCount;
                         final int finalFoundCount = myFoundCount;
-                        final int finalReturnedCount = returnedCount;
+                        final int finalGivenBackCount = givenBackCount;
+                        final int finalReceivedBackCount = receivedBackCount;
                         
-                        android.util.Log.d("HomeFragment", "Statistics - Lost: " + finalLostCount + ", Found: " + finalFoundCount + ", Returned: " + finalReturnedCount);
+                        android.util.Log.d("HomeFragment", "Statistics - Lost: " + finalLostCount + ", Found: " + finalFoundCount + ", GivenBack: " + finalGivenBackCount + ", ReceivedBack: " + finalReceivedBackCount);
                         
                         // Check if fragment is still attached before updating UI
                         if (isAdded() && getActivity() != null) {
                             requireActivity().runOnUiThread(() -> {
                                 tvMyLostCount.setText(String.valueOf(finalLostCount));
                                 tvMyFoundCount.setText(String.valueOf(finalFoundCount));
-                                tvReturnedCount.setText(String.valueOf(finalReturnedCount));
+                                tvGivenBackCount.setText(String.valueOf(finalGivenBackCount));
+                                tvReceivedBackCount.setText(String.valueOf(finalReceivedBackCount));
                             });
                         }
                     }
