@@ -1,6 +1,6 @@
 # LOST & FOUND FPT CAMPUS - API DOCUMENTATION
 
-**Base URL:** `http://vietsuky.com/api/lostfound` (hoặc `http://localhost:8080/Vietsuky2/api/lostfound`)
+**Base URL:** `https://vietsuky.com/api/lostfound` (hoặc `http://localhost:8080/Vietsuky2/api/lostfound`)
 
 **Authentication:** JWT Token (Bearer Token trong header Authorization)
 
@@ -651,7 +651,7 @@ All error responses follow this format:
 
 ### 1. Register User
 ```
-POST http://vietsuky.com/api/lostfound/auth/register
+POST https://vietsuky.com/api/lostfound/auth/register
 Body: { "name": "Test", "email": "test@fpt.edu.vn", "password": "123456" }
 ```
 
@@ -662,7 +662,7 @@ Body: { "name": "Test", "email": "test@fpt.edu.vn", "password": "123456" }
 
 ### 3. Use Token for Other Requests
 ```
-GET http://vietsuky.com/api/lostfound/items
+GET https://vietsuky.com/api/lostfound/items
 Header: Authorization: Bearer eyJhbG...
 ```
 

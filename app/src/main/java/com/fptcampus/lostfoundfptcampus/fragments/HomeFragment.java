@@ -95,6 +95,50 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadUserInfo() {
+        // Load from API first, fallback to SharedPreferences
+        String token = "Bearer " + prefsManager.getToken();
+        
+        com.fptcampus.lostfoundfptcampus.util.ApiClient.getUserApi().getProfile(token)
+            .enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
+                @Override
+                public void onResponse(
+                    retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call,
+                    retrofit2.Response<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
+                    
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                        com.fptcampus.lostfoundfptcampus.model.User user = response.body().getData();
+                        
+                        // Update SharedPreferences with latest data from API
+                        prefsManager.saveUserName(user.getName());
+                        prefsManager.saveUserEmail(user.getEmail());
+                        prefsManager.saveUserKarma(user.getKarma());
+                        
+                        if (isAdded() && getActivity() != null) {
+                            requireActivity().runOnUiThread(() -> {
+                                tvWelcome.setText("Xin chào, " + user.getName() + "!");
+                                tvKarma.setText("⭐ Karma: " + user.getKarma() + " điểm");
+                            });
+                        }
+                        
+                        android.util.Log.d("HomeFragment", "User info loaded from API - Karma: " + user.getKarma());
+                    } else {
+                        // Fallback to SharedPreferences if API fails
+                        loadUserInfoFromPrefs();
+                    }
+                }
+                
+                @Override
+                public void onFailure(
+                    retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call,
+                    Throwable t) {
+                    android.util.Log.e("HomeFragment", "Failed to load user info from API", t);
+                    // Fallback to SharedPreferences
+                    loadUserInfoFromPrefs();
+                }
+            });
+    }
+    
+    private void loadUserInfoFromPrefs() {
         String userName = prefsManager.getUserName();
         int karma = prefsManager.getUserKarma();
 

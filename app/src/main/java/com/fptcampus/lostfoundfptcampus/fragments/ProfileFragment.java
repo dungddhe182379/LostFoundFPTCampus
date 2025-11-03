@@ -94,11 +94,67 @@ public class ProfileFragment extends Fragment {
         });
     }
 
-    private void    loadUserProfile() {
+    private void loadUserProfile() {
+        String token = "Bearer " + prefsManager.getToken();
+        
+        // Call API first to get fresh data
+        com.fptcampus.lostfoundfptcampus.model.api.UserApi userApi = 
+            com.fptcampus.lostfoundfptcampus.util.ApiClient.getUserApi();
+        
+        retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call = 
+            userApi.getProfile(token);
+        
+        call.enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
+            @Override
+            public void onResponse(
+                retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call,
+                retrofit2.Response<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
+                
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    com.fptcampus.lostfoundfptcampus.model.User user = response.body().getData();
+                    
+                    // Update SharedPreferences with fresh data
+                    prefsManager.saveUserName(user.getName());
+                    prefsManager.saveUserEmail(user.getEmail());
+                    prefsManager.saveUserKarma(user.getKarma());
+                    
+                    // Update UI
+                    if (isAdded() && getActivity() != null) {
+                        requireActivity().runOnUiThread(() -> {
+                            updateUIWithUserData(user.getName(), user.getEmail(), user.getKarma());
+                        });
+                    }
+                    
+                    android.util.Log.d("ProfileFragment", "User profile loaded from API: " + user.getName() + ", Karma: " + user.getKarma());
+                } else {
+                    android.util.Log.e("ProfileFragment", "Failed to load profile from API");
+                    loadUserProfileFromPrefs();
+                }
+            }
+            
+            @Override
+            public void onFailure(
+                retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call,
+                Throwable t) {
+                android.util.Log.e("ProfileFragment", "API call failed, loading from cache", t);
+                loadUserProfileFromPrefs();
+            }
+        });
+    }
+    
+    private void loadUserProfileFromPrefs() {
         String userName = prefsManager.getUserName();
         String userEmail = prefsManager.getUserEmail();
         int karma = prefsManager.getUserKarma();
-
+        
+        if (isAdded() && getActivity() != null) {
+            requireActivity().runOnUiThread(() -> {
+                updateUIWithUserData(userName, userEmail, karma);
+            });
+        }
+    }
+    
+    private void updateUIWithUserData(String userName, String userEmail, int karma) {
         // Get first letter of name for avatar
         String initial = "U";
         if (userName != null && !userName.isEmpty()) {
