@@ -115,19 +115,40 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
                 .commit();
     }
 
+    private void loadItemsFragment() {
+        Fragment itemsFragment = new com.fptcampus.lostfoundfptcampus.fragments.ItemsFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, itemsFragment)
+                .commit();
+    }
+
     private void navigateToItemsList() {
-        Intent intent = new Intent(this, ListItemActivity.class);
-        startActivity(intent);
+        // Use fragment instead of activity
+        loadItemsFragment();
+    }
+
+    private void loadQRFragment() {
+        Fragment qrFragment = new com.fptcampus.lostfoundfptcampus.fragments.QRFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, qrFragment)
+                .commit();
+    }
+
+    private void loadMapFragment() {
+        Fragment mapFragment = new com.fptcampus.lostfoundfptcampus.fragments.MapFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, mapFragment)
+                .commit();
     }
 
     private void navigateToMap() {
-        Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.MapActivity.class);
-        startActivity(intent);
+        // Use fragment instead of activity
+        loadMapFragment();
     }
 
     private void navigateToQR() {
-        Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.QrScanActivity.class);
-        startActivity(intent);
+        // Use fragment instead of activity
+        loadQRFragment();
     }
 
     private void navigateToLogin() {

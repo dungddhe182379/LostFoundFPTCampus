@@ -59,4 +59,10 @@
     <!-- Transparent Overlays -->
     <color name="overlay_dark">#80000000</color> <!-- 50% Black -->
     <color name="overlay_light">#80FFFFFF</color> <!-- 50% White -->
+    
+    <!-- White Alpha Variants -->
+    <color name="white_alpha_90">#E6FFFFFF</color> <!-- 90% White -->
+    <color name="white_alpha_80">#CCFFFFFF</color> <!-- 80% White -->
+    <color name="white_alpha_60">#99FFFFFF</color> <!-- 60% White -->
+    <color name="white_alpha_40">#66FFFFFF</color> <!-- 40% White -->
 </resources>

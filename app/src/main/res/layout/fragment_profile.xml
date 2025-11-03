@@ -4,18 +4,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/background">
+    android:background="@color/background"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <!-- Profile Header with Gradient -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="240dp"
-            android:background="@drawable/gradient_background">
+            android:background="@drawable/gradient_background"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <!-- Avatar Circle -->
             <androidx.cardview.widget.CardView
@@ -62,6 +68,7 @@
                 android:layout_below="@id/tvUserName"
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="4dp"
+                android:layout_marginBottom="16dp"
                 android:text="user@fpt.edu.vn"
                 android:textSize="14sp"
                 android:textColor="@color/white"
@@ -73,14 +80,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <!-- Karma Card -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.App.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-40dp">
+                android:layout_marginTop="-30dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
