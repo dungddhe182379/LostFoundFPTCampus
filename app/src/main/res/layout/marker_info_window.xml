@@ -12,13 +12,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:minWidth="200dp"
-        android:maxWidth="260dp">
+        android:minWidth="160dp"
+        android:maxWidth="200dp">
 
         <!-- Item Image with Rounded Top Corners -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="100dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp">
 
@@ -62,7 +62,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:padding="10dp">
 
             <TextView
                 android:id="@+id/tvMarkerTitle"
@@ -70,19 +70,18 @@
                 android:layout_height="wrap_content"
                 android:text="Tên đồ vật"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                android:maxLines="2"
-                android:ellipsize="end"
-                android:lineSpacingExtra="2dp"/>
+                android:maxLines="1"
+                android:ellipsize="end"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="👆 Nhấn để xem chi tiết"
+                android:text="👆 Xem chi tiết"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:layout_marginTop="6dp"
+                android:textSize="10sp"
+                android:layout_marginTop="4dp"
                 android:alpha="0.7"/>
 
         </LinearLayout>

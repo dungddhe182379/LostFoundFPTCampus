@@ -23,7 +23,6 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.fptcampus.lostfoundfptcampus.R;
-import com.fptcampus.lostfoundfptcampus.controller.DetailItemActivity;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
@@ -52,6 +51,7 @@ public class MapFragment extends Fragment implements LocationListener {
     private static final int LOCATION_PERMISSION_REQUEST = 200;
     private static final double FPT_UNIVERSITY_LAT = 21.0138;
     private static final double FPT_UNIVERSITY_LNG = 105.5252;
+    private static final String ARG_HIGHLIGHT_ITEM_ID = "highlight_item_id";
 
     private MapView mapView;
     private ProgressBar progressBar;
@@ -75,6 +75,15 @@ public class MapFragment extends Fragment implements LocationListener {
     private GeoPoint currentMarkerPosition;
     private org.osmdroid.views.overlay.Polyline routeLine;
     private java.util.concurrent.ExecutorService executorService;
+    private long highlightItemId = -1;
+
+    public static MapFragment newInstanceWithItem(long itemId) {
+        MapFragment fragment = new MapFragment();
+        Bundle args = new Bundle();
+        args.putLong(ARG_HIGHLIGHT_ITEM_ID, itemId);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Nullable
     @Override
@@ -90,6 +99,11 @@ public class MapFragment extends Fragment implements LocationListener {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // Get highlight item ID if passed
+        if (getArguments() != null) {
+            highlightItemId = getArguments().getLong(ARG_HIGHLIGHT_ITEM_ID, -1);
+        }
 
         bindingView(view);
         bindingAction();
@@ -295,14 +309,42 @@ public class MapFragment extends Fragment implements LocationListener {
         }
 
         // Add markers for filtered items
+        Marker highlightMarker = null;
+        LostItem highlightItem = null;
+        
         for (LostItem item : filteredItems) {
-            addMarker(item);
+            Marker marker = addMarker(item);
+            
+            // Check if this is the item to highlight
+            if (highlightItemId != -1 && item.getId() == highlightItemId) {
+                highlightMarker = marker;
+                highlightItem = item;
+            }
         }
 
         mapView.invalidate();
+        
+        // Auto-focus and show info for highlighted item
+        if (highlightMarker != null && highlightItem != null) {
+            final Marker finalMarker = highlightMarker;
+            final LostItem finalItem = highlightItem;
+            
+            mapView.post(() -> {
+                // Move camera to marker
+                mapController.animateTo(finalMarker.getPosition());
+                mapController.setZoom(18.0);
+                
+                // Show InfoWindow and detail card
+                finalMarker.showInfoWindow();
+                showMarkerContent(finalMarker, finalItem);
+                
+                // Reset highlight flag
+                highlightItemId = -1;
+            });
+        }
     }
 
-    private void addMarker(LostItem item) {
+    private Marker addMarker(LostItem item) {
         GeoPoint point = new GeoPoint(item.getLatitude(), item.getLongitude());
         Marker marker = new Marker(mapView);
         marker.setPosition(point);
@@ -375,6 +417,7 @@ public class MapFragment extends Fragment implements LocationListener {
         });
 
         mapView.getOverlays().add(marker);
+        return marker;
     }
 
     private Drawable getMarkerDrawable(int colorRes) {
@@ -478,15 +521,11 @@ public class MapFragment extends Fragment implements LocationListener {
     
     private void onBtnViewDetailClick() {
         if (selectedItem != null) {
-            Intent intent = new Intent(requireContext(), DetailItemActivity.class);
-            intent.putExtra("itemId", selectedItem.getId());
-            intent.putExtra("title", selectedItem.getTitle());
-            intent.putExtra("description", selectedItem.getDescription());
-            intent.putExtra("category", selectedItem.getCategory());
-            intent.putExtra("status", selectedItem.getStatus());
-            intent.putExtra("latitude", selectedItem.getLatitude() != null ? selectedItem.getLatitude() : 0.0);
-            intent.putExtra("longitude", selectedItem.getLongitude() != null ? selectedItem.getLongitude() : 0.0);
-            startActivity(intent);
+            // Navigate to DetailItemFragment
+            if (getActivity() instanceof com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) {
+                DetailItemFragment detailFragment = DetailItemFragment.newInstance(selectedItem);
+                ((com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) getActivity()).navigateTo(detailFragment, true);
+            }
         }
     }
     
@@ -496,17 +535,42 @@ public class MapFragment extends Fragment implements LocationListener {
             return;
         }
         
-        // Hide detail card and InfoWindow
-        hideItemInfoWithAnimation();
+        // Save position before hiding (will be set to null in animation callback)
+        final GeoPoint targetPosition = new GeoPoint(currentMarkerPosition.getLatitude(), currentMarkerPosition.getLongitude());
         
-        // Draw route from current location to marker
+        // CRITICAL: Force close InfoWindow FIRST before any animation
+        if (selectedMarker != null) {
+            if (selectedMarker.getInfoWindow() instanceof CustomMarkerInfoWindow) {
+                // Call forceClose to bypass preventAutoClose flag
+                ((CustomMarkerInfoWindow) selectedMarker.getInfoWindow()).forceClose();
+            }
+            // Then call standard close
+            selectedMarker.closeInfoWindow();
+        }
+        
+        // Hide detail card with animation (but InfoWindow already hidden above)
+        cardItemInfo.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .setInterpolator(new android.view.animation.AccelerateInterpolator())
+            .withEndAction(() -> {
+                cardItemInfo.setVisibility(View.GONE);
+                cardItemInfo.setAlpha(1f);
+                // Cleanup references
+                selectedMarker = null;
+                selectedItem = null;
+                currentMarkerPosition = null;
+            })
+            .start();
+        
+        // Draw route using saved position
         GeoPoint myLocation = myLocationOverlay.getMyLocation();
         if (myLocation != null) {
-            drawRoute(myLocation, currentMarkerPosition);
+            drawRoute(myLocation, targetPosition);
         } else {
             // Use FPT location as fallback
             GeoPoint fptPoint = new GeoPoint(FPT_UNIVERSITY_LAT, FPT_UNIVERSITY_LNG);
-            drawRoute(fptPoint, currentMarkerPosition);
+            drawRoute(fptPoint, targetPosition);
         }
     }
     
@@ -593,12 +657,25 @@ public class MapFragment extends Fragment implements LocationListener {
         }
         
         public void forceClose() {
+            // Immediately set flags to allow closing
             preventAutoClose = false;
             isOpened = false;
-            mView.setVisibility(View.GONE);
-            mView.postDelayed(() -> {
-                preventAutoClose = true;
-            }, 100);
+            
+            // Hide view immediately
+            if (mView != null) {
+                mView.setVisibility(View.GONE);
+                mView.setAlpha(0f);
+            }
+            
+            // Reset preventAutoClose flag after a delay
+            if (mView != null) {
+                mView.postDelayed(() -> {
+                    preventAutoClose = true;
+                    if (mView != null) {
+                        mView.setAlpha(1f);
+                    }
+                }, 300);
+            }
         }
     }
 

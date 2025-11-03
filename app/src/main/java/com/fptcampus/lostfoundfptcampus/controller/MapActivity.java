@@ -945,6 +945,7 @@ public class MapActivity extends AppCompatActivity {
             intent.putExtra("status", selectedItem.getStatus());
             intent.putExtra("latitude", selectedItem.getLatitude());
             intent.putExtra("longitude", selectedItem.getLongitude());
+            intent.putExtra("userId", selectedItem.getUserId());
             startActivity(intent);
         }
     }

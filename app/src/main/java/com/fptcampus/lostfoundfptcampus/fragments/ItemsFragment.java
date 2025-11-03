@@ -17,7 +17,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.controller.AddItemActivity;
-import com.fptcampus.lostfoundfptcampus.controller.DetailItemActivity;
 import com.fptcampus.lostfoundfptcampus.controller.adapter.ItemAdapter;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
@@ -47,8 +46,17 @@ public class ItemsFragment extends Fragment {
     private AppDatabase database;
     private ExecutorService executorService;
     private SharedPreferencesManager prefsManager;
+    private com.fptcampus.lostfoundfptcampus.navigation.NavigationHost navigationHost;
     
     private String currentStatus = "all";
+
+    @Override
+    public void onAttach(@NonNull android.content.Context context) {
+        super.onAttach(context);
+        if (context instanceof com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) {
+            navigationHost = (com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) context;
+        }
+    }
 
     @Nullable
     @Override
@@ -112,16 +120,11 @@ public class ItemsFragment extends Fragment {
     private void setupRecyclerView() {
         adapter = new ItemAdapter();
         adapter.setOnItemClickListener(item -> {
-            Intent intent = new Intent(requireContext(), DetailItemActivity.class);
-            intent.putExtra("itemId", item.getId());
-            intent.putExtra("title", item.getTitle());
-            intent.putExtra("description", item.getDescription());
-            intent.putExtra("category", item.getCategory());
-            intent.putExtra("status", item.getStatus());
-            intent.putExtra("latitude", item.getLatitude() != null ? item.getLatitude() : 0.0);
-            intent.putExtra("longitude", item.getLongitude() != null ? item.getLongitude() : 0.0);
-            intent.putExtra("createdAt", item.getCreatedAt() != null ? item.getCreatedAt().getTime() : 0);
-            startActivity(intent);
+            // Navigate to DetailItemFragment
+            if (navigationHost != null) {
+                DetailItemFragment detailFragment = DetailItemFragment.newInstance(item);
+                navigationHost.navigateTo(detailFragment, true);
+            }
         });
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));

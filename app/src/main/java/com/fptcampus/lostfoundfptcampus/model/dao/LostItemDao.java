@@ -34,6 +34,9 @@ public interface LostItemDao {
     @Query("SELECT * FROM items WHERE user_id = :userId ORDER BY created_at DESC")
     List<LostItem> getItemsByUserId(long userId);
 
+    @Query("SELECT * FROM items WHERE user_id = :userId AND status = :status ORDER BY created_at DESC")
+    List<LostItem> getItemsByUserIdAndStatus(long userId, String status);
+
     @Query("SELECT * FROM items WHERE status = :status ORDER BY created_at DESC")
     List<LostItem> getItemsByStatus(String status);
 

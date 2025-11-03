@@ -101,6 +101,7 @@ public class ListItemActivity extends AppCompatActivity {
             intent.putExtra("latitude", item.getLatitude() != null ? item.getLatitude() : 0.0);
             intent.putExtra("longitude", item.getLongitude() != null ? item.getLongitude() : 0.0);
             intent.putExtra("createdAt", item.getCreatedAt() != null ? item.getCreatedAt().getTime() : 0);
+            intent.putExtra("userId", item.getUserId());
             startActivity(intent);
         });
 

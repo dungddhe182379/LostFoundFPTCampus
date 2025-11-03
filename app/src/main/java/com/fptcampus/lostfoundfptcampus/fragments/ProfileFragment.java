@@ -76,8 +76,11 @@ public class ProfileFragment extends Fragment {
 
     private void setupClickListeners() {
         cardMyItems.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), ListItemActivity.class);
-            startActivity(intent);
+            // Navigate to MyItemsFragment
+            if (navigationHost != null) {
+                MyItemsFragment myItemsFragment = new MyItemsFragment();
+                navigationHost.navigateTo(myItemsFragment, true);
+            }
         });
 
         cardLeaderboard.setOnClickListener(v -> {
