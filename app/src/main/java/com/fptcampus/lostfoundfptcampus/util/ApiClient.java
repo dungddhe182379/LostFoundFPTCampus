@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.fptcampus.lostfoundfptcampus.model.api.AuthApi;
+import com.fptcampus.lostfoundfptcampus.model.api.HistoryApi;
 import com.fptcampus.lostfoundfptcampus.model.api.ItemApi;
 import com.fptcampus.lostfoundfptcampus.model.api.NotificationApi;
 import com.fptcampus.lostfoundfptcampus.model.api.UserApi;
@@ -163,6 +164,10 @@ public class ApiClient {
 
     public static NotificationApi getNotificationApi() {
         return getClient().create(NotificationApi.class);
+    }
+
+    public static HistoryApi getHistoryApi() {
+        return getClient().create(HistoryApi.class);
     }
 
     // Reset client (useful for logout)

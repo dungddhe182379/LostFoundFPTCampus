@@ -2,6 +2,7 @@ package com.fptcampus.lostfoundfptcampus.model.api;
 
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest;
+import com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest;
 
 import java.util.List;
 
@@ -59,7 +60,7 @@ public interface ItemApi {
     Call<ApiResponse<LostItem>> updateItem(
         @Header("Authorization") String token,
         @Path("itemId") long itemId,
-        @Body LostItem item
+        @Body UpdateItemRequest request
     );
 
     @DELETE("api/lostfound/items/{itemId}")
