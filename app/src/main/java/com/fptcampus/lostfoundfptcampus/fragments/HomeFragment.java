@@ -98,8 +98,10 @@ public class HomeFragment extends Fragment {
     private void loadUserInfo() {
         // Load from API first, fallback to SharedPreferences
         String token = "Bearer " + prefsManager.getToken();
+        long userId = prefsManager.getUserId();
         
-        com.fptcampus.lostfoundfptcampus.util.ApiClient.getUserApi().getProfile(token)
+        // WORKAROUND: Use getUserById instead of getProfile because backend returns wrong user
+        com.fptcampus.lostfoundfptcampus.util.ApiClient.getUserApi().getUserById(token, userId)
             .enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
                 @Override
                 public void onResponse(

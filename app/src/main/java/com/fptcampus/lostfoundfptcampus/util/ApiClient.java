@@ -51,6 +51,7 @@ public class ApiClient {
             // OkHttp client with interceptors
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .addInterceptor(getLoggingInterceptor()) // Log first
+                .addInterceptor(new NoCacheInterceptor()) // Disable cache
                 .addInterceptor(new AuthInterceptor())
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -72,6 +73,31 @@ public class ApiClient {
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         return interceptor;
+    }
+
+    // No-cache interceptor to force fresh data from server
+    private static class NoCacheInterceptor implements Interceptor {
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Request originalRequest = chain.request();
+            
+            // Add timestamp to GET requests to bypass cache completely
+            okhttp3.HttpUrl url = originalRequest.url();
+            if (originalRequest.method().equals("GET")) {
+                url = url.newBuilder()
+                    .addQueryParameter("_t", String.valueOf(System.currentTimeMillis()))
+                    .build();
+            }
+            
+            Request request = originalRequest.newBuilder()
+                .url(url)
+                .addHeader("Cache-Control", "no-cache")
+                .addHeader("Cache-Control", "no-store")
+                .addHeader("Cache-Control", "must-revalidate")
+                .addHeader("Pragma", "no-cache")
+                .build();
+            return chain.proceed(request);
+        }
     }
 
     // Auth interceptor to add JWT token to requests

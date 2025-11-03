@@ -23,11 +23,18 @@ import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.textfield.TextInputEditText;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,6 +48,9 @@ public class ItemsFragment extends Fragment {
     private SwipeRefreshLayout swipeRefresh;
     private FloatingActionButton fabAdd;
     private LinearLayout emptyState;
+    private TextInputEditText etSearch;
+    private ChipGroup chipGroupDateFilter;
+    private Chip chipToday, chipThisWeek, chipThisMonth, chipAll;
 
     private ItemAdapter adapter;
     private AppDatabase database;
@@ -49,6 +59,9 @@ public class ItemsFragment extends Fragment {
     private com.fptcampus.lostfoundfptcampus.navigation.NavigationHost navigationHost;
     
     private String currentStatus = "all";
+    private String searchQuery = "";
+    private String dateFilter = "all"; // "today", "week", "month", "all"
+    private List<LostItem> allItemsCache = new ArrayList<>();
 
     @Override
     public void onAttach(@NonNull android.content.Context context) {
@@ -86,6 +99,12 @@ public class ItemsFragment extends Fragment {
         swipeRefresh = view.findViewById(R.id.swipeRefresh);
         fabAdd = view.findViewById(R.id.fabAdd);
         emptyState = view.findViewById(R.id.emptyState);
+        etSearch = view.findViewById(R.id.etSearch);
+        chipGroupDateFilter = view.findViewById(R.id.chipGroupDateFilter);
+        chipToday = view.findViewById(R.id.chipToday);
+        chipThisWeek = view.findViewById(R.id.chipThisWeek);
+        chipThisMonth = view.findViewById(R.id.chipThisMonth);
+        chipAll = view.findViewById(R.id.chipAll);
     }
 
     private void bindingAction() {
@@ -105,6 +124,40 @@ public class ItemsFragment extends Fragment {
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
+        });
+
+        // Search text change listener
+        etSearch.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchQuery = s.toString().trim();
+                applyFilters();
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        // Date filter chip listeners
+        chipGroupDateFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.isEmpty()) {
+                dateFilter = "all";
+            } else {
+                int checkedId = checkedIds.get(0);
+                if (checkedId == R.id.chipToday) {
+                    dateFilter = "today";
+                } else if (checkedId == R.id.chipThisWeek) {
+                    dateFilter = "week";
+                } else if (checkedId == R.id.chipThisMonth) {
+                    dateFilter = "month";
+                } else {
+                    dateFilter = "all";
+                }
+            }
+            applyFilters();
         });
     }
 
@@ -146,7 +199,7 @@ public class ItemsFragment extends Fragment {
                 currentStatus = "returned";
                 break;
         }
-        loadItemsFromApi();
+        applyFilters();
     }
 
     private void loadItemsFromApi() {
@@ -176,29 +229,15 @@ public class ItemsFragment extends Fragment {
                     ApiResponse<List<LostItem>> apiResponse = response.body();
                     
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                        List<LostItem> allItems = apiResponse.getData();
-                        
-                        // Filter based on current status
-                        List<LostItem> filteredItems;
-                        if ("all".equals(currentStatus)) {
-                            filteredItems = allItems;
-                        } else {
-                            filteredItems = new ArrayList<>();
-                            for (LostItem item : allItems) {
-                                if (currentStatus.equalsIgnoreCase(item.getStatus())) {
-                                    filteredItems.add(item);
-                                }
-                            }
-                        }
+                        allItemsCache = apiResponse.getData();
                         
                         requireActivity().runOnUiThread(() -> {
-                            adapter.setItems(filteredItems);
-                            updateEmptyState(filteredItems.isEmpty());
+                            applyFilters();
                         });
                         
                         // Save to local database for offline access
                         executorService.execute(() -> {
-                            for (LostItem item : allItems) {
+                            for (LostItem item : allItemsCache) {
                                 item.setSynced(true);
                                 database.lostItemDao().insert(item);
                             }
@@ -238,17 +277,12 @@ public class ItemsFragment extends Fragment {
 
     private void loadItemsFromLocal() {
         executorService.execute(() -> {
-            List<LostItem> items;
-            if ("all".equals(currentStatus)) {
-                items = database.lostItemDao().getAllItems();
-            } else {
-                items = database.lostItemDao().getItemsByStatus(currentStatus);
-            }
+            List<LostItem> items = database.lostItemDao().getAllItems();
             
             if (isAdded() && getActivity() != null) {
+                allItemsCache = items;
                 requireActivity().runOnUiThread(() -> {
-                    adapter.setItems(items);
-                    updateEmptyState(items.isEmpty());
+                    applyFilters();
                 });
             }
         });
@@ -261,6 +295,85 @@ public class ItemsFragment extends Fragment {
         } else {
             emptyState.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Apply all filters: status, search query, and date
+     */
+    private void applyFilters() {
+        List<LostItem> filteredItems = new ArrayList<>();
+
+        for (LostItem item : allItemsCache) {
+            // Filter by status
+            if (!"all".equals(currentStatus) && !currentStatus.equalsIgnoreCase(item.getStatus())) {
+                continue;
+            }
+
+            // Filter by search query
+            if (!searchQuery.isEmpty()) {
+                String query = searchQuery.toLowerCase();
+                String title = item.getTitle() != null ? item.getTitle().toLowerCase() : "";
+                String description = item.getDescription() != null ? item.getDescription().toLowerCase() : "";
+                String category = item.getCategory() != null ? item.getCategory().toLowerCase() : "";
+
+                if (!title.contains(query) && !description.contains(query) && !category.contains(query)) {
+                    continue;
+                }
+            }
+
+            // Filter by date
+            if (!"all".equals(dateFilter)) {
+                Date itemDate = item.getCreatedAt();
+                if (itemDate != null && !isWithinDateRange(itemDate, dateFilter)) {
+                    continue;
+                }
+            }
+
+            filteredItems.add(item);
+        }
+
+        adapter.setItems(filteredItems);
+        updateEmptyState(filteredItems.isEmpty());
+    }
+
+    /**
+     * Check if date is within the specified range
+     */
+    private boolean isWithinDateRange(Date itemDate, String range) {
+        Calendar itemCal = Calendar.getInstance();
+        itemCal.setTime(itemDate);
+
+        Calendar now = Calendar.getInstance();
+
+        switch (range) {
+            case "today":
+                // Same day, month, and year
+                return itemCal.get(Calendar.YEAR) == now.get(Calendar.YEAR) &&
+                       itemCal.get(Calendar.DAY_OF_YEAR) == now.get(Calendar.DAY_OF_YEAR);
+
+            case "week":
+                // Within current week (Sunday to Saturday)
+                Calendar weekStart = (Calendar) now.clone();
+                weekStart.set(Calendar.DAY_OF_WEEK, weekStart.getFirstDayOfWeek());
+                weekStart.set(Calendar.HOUR_OF_DAY, 0);
+                weekStart.set(Calendar.MINUTE, 0);
+                weekStart.set(Calendar.SECOND, 0);
+                weekStart.set(Calendar.MILLISECOND, 0);
+
+                Calendar weekEnd = (Calendar) weekStart.clone();
+                weekEnd.add(Calendar.DAY_OF_WEEK, 7);
+
+                return itemDate.getTime() >= weekStart.getTimeInMillis() &&
+                       itemDate.getTime() < weekEnd.getTimeInMillis();
+
+            case "month":
+                // Same month and year
+                return itemCal.get(Calendar.YEAR) == now.get(Calendar.YEAR) &&
+                       itemCal.get(Calendar.MONTH) == now.get(Calendar.MONTH);
+
+            default:
+                return true;
         }
     }
 

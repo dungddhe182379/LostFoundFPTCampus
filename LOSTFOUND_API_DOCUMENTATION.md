@@ -77,9 +77,11 @@
 
 ## 👤 USER APIs
 
-### 3. Get Current User Profile
+### 3. Get Current User Profile ⚠️ DEPRECATED - USE GET /user/{userId} INSTEAD
 - **URL:** `GET /api/lostfound/user/profile`
 - **Headers:** `Authorization: Bearer {token}`
+- **⚠️ KNOWN BUG:** This endpoint returns wrong user data (always returns user ID=1 instead of current authenticated user)
+- **✅ WORKAROUND:** Use `GET /api/lostfound/user/{userId}` instead (see endpoint #5 below)
 - **Response Success (200):**
 ```json
 {
@@ -97,6 +99,7 @@
   "timestamp": 1730454600000
 }
 ```
+- **⚠️ Note:** App now uses `GET /user/{userId}` to get correct user data with accurate karma
 
 ### 4. Update User Profile
 - **URL:** `PUT /api/lostfound/user/profile`
@@ -121,11 +124,41 @@
 }
 ```
 
-### 5. Get User By ID
+### 5. Get User By ID ✅ RECOMMENDED FOR USER PROFILE
 - **URL:** `GET /api/lostfound/user/{userId}`
-- **Headers:** `Authorization: Bearer {token}`
-- **Example:** `GET /api/lostfound/user/5`
-- **Response Success (200):** Same as profile response
+- **Headers:** `Authorization: Bearer {token}` (token is required but any valid token works)
+- **Description:** Get user information by user ID. **Use this instead of `/user/profile`** for accurate karma data.
+- **Example:** `GET /api/lostfound/user/10`
+- **Response Success (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 10,
+    "uuid": "e32171eb-b72e-11f0-9256-fa163e438cc1",
+    "name": "do dung",
+    "email": "dungddhe182379@fpt.edu.vn",
+    "phone": "0905123456",
+    "avatarUrl": "https://cdn.vietsuky.com/avatar/dung.jpg",
+    "karma": 160,
+    "createdAt": "2025-11-02T04:27:25"
+  },
+  "timestamp": 1730678730000
+}
+```
+- **✅ Advantages:**
+  - Returns **correct user data** based on userId parameter
+  - Shows **accurate karma** from database
+  - No JWT parsing issues
+  - Works reliably for profile display
+- **Usage in App:**
+  1. Get `userId` from SharedPreferences (saved during login)
+  2. Call `GET /user/{userId}` to get current user profile
+  3. Display karma and other user info in UI
+- **Notes:**
+  - Token is still required for authentication
+  - Any valid token can access any user's public profile
+  - Password hash is NOT included in response (security)
 
 ### 6. Get All Users 🆕
 - **URL:** `GET /api/lostfound/user`
@@ -783,10 +816,24 @@ If you encounter any issues with the API, please check:
 - **Item Management:** 8 APIs (including Confirm Handover 🆕)
 - **Notifications:** 7 APIs
 
-**Latest Update:** November 3, 2025 - Added Confirm Handover API (QR Code)
+**Latest Update:** November 4, 2025 - Updated user profile endpoint documentation
 
 ---
 
-**Generated:** November 3, 2025
-**Version:** 1.2
+## ⚠️ KNOWN ISSUES & WORKAROUNDS
+
+### Issue #1: GET /user/profile Returns Wrong User
+- **Problem:** `/api/lostfound/user/profile` endpoint has a bug - always returns user with ID=1 instead of the authenticated user from JWT token
+- **Impact:** Karma and other user data shown in app may be incorrect
+- **Workaround:** Use `GET /api/lostfound/user/{userId}` instead
+- **Status:** Backend fix needed - JWT parsing in `/user/profile` endpoint
+- **App Implementation:** 
+  - HomeFragment and ProfileFragment now use `getUserById(userId)` instead of `getProfile()`
+  - userId is retrieved from SharedPreferences (saved during login)
+  - This ensures karma and user data are always correct
+
+---
+
+**Generated:** November 4, 2025
+**Version:** 1.3
 **Author:** API Documentation Generator

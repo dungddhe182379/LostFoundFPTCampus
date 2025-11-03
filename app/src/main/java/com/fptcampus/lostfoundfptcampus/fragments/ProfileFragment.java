@@ -96,13 +96,15 @@ public class ProfileFragment extends Fragment {
 
     private void loadUserProfile() {
         String token = "Bearer " + prefsManager.getToken();
+        long userId = prefsManager.getUserId();
         
         // Call API first to get fresh data
         com.fptcampus.lostfoundfptcampus.model.api.UserApi userApi = 
             com.fptcampus.lostfoundfptcampus.util.ApiClient.getUserApi();
         
+        // WORKAROUND: Use getUserById instead of getProfile because backend returns wrong user
         retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call = 
-            userApi.getProfile(token);
+            userApi.getUserById(token, userId);
         
         call.enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
             @Override
