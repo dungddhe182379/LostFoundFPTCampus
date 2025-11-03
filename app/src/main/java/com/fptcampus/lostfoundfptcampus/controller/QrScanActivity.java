@@ -1,5 +1,7 @@
 package com.fptcampus.lostfoundfptcampus.controller;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.View;
@@ -9,8 +11,12 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
@@ -36,6 +42,8 @@ import java.util.concurrent.Executors;
  * Following MVC pattern from lostfound_project_summary.md
  */
 public class QrScanActivity extends AppCompatActivity {
+    private static final int CAMERA_PERMISSION_REQUEST = 100;
+    
     private MaterialToolbar toolbar;
     private TabLayout tabLayout;
     private DecoratedBarcodeView barcodeScanner;
@@ -49,6 +57,7 @@ public class QrScanActivity extends AppCompatActivity {
     private List<LostItem> myItems;
     private LostItem selectedItem;
     private Bitmap currentQrBitmap;
+    private boolean hasCameraPermission = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,12 +69,78 @@ public class QrScanActivity extends AppCompatActivity {
         bindingView();
         bindingAction();
         loadMyItems();
+        
+        // Check camera permission TRƯỚC KHI start scanner
+        checkCameraPermission();
 
         // Check if launched in generate mode
         String mode = getIntent().getStringExtra("mode");
         if ("generate".equals(mode)) {
             tabLayout.selectTab(tabLayout.getTabAt(1));
             switchToGeneratorView();
+        } else {
+            // Nếu ở scanner mode, cần có permission
+            if (hasCameraPermission) {
+                switchToScannerView();
+            }
+        }
+    }
+    
+    private void checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED) {
+            hasCameraPermission = true;
+            android.util.Log.d("QrScanActivity", "✅ Camera permission already granted");
+        } else {
+            android.util.Log.d("QrScanActivity", "⚠️ Camera permission not granted, requesting...");
+            requestCameraPermission();
+        }
+    }
+    
+    private void requestCameraPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+            // Show explanation why we need camera
+            ErrorDialogHelper.showError(this, "Cần quyền Camera",
+                    "Ứng dụng cần quyền truy cập camera để quét mã QR. Vui lòng cấp quyền.",
+                    () -> {
+                        ActivityCompat.requestPermissions(this,
+                                new String[]{Manifest.permission.CAMERA},
+                                CAMERA_PERMISSION_REQUEST);
+                    });
+        } else {
+            // Request permission directly
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    CAMERA_PERMISSION_REQUEST);
+        }
+    }
+    
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == CAMERA_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                hasCameraPermission = true;
+                android.util.Log.d("QrScanActivity", "✅ Camera permission granted");
+                Toast.makeText(this, "Đã cấp quyền camera", Toast.LENGTH_SHORT).show();
+                
+                // Start scanner nếu đang ở tab scanner
+                if (tabLayout.getSelectedTabPosition() == 0) {
+                    switchToScannerView();
+                }
+            } else {
+                hasCameraPermission = false;
+                android.util.Log.e("QrScanActivity", "❌ Camera permission denied");
+                
+                // Switch to generator tab
+                tabLayout.selectTab(tabLayout.getTabAt(1));
+                switchToGeneratorView();
+                
+                ErrorDialogHelper.showError(this, "Quyền bị từ chối",
+                        "Không thể quét QR code mà không có quyền camera. Vui lòng cấp quyền trong Cài đặt.");
+            }
         }
     }
 
@@ -114,10 +189,15 @@ public class QrScanActivity extends AppCompatActivity {
             @Override
             public void barcodeResult(BarcodeResult result) {
                 if (result != null && result.getText() != null) {
+                    android.util.Log.d("QrScanActivity", "✅ QR Code scanned: " + result.getText());
                     onQrScanned(result.getText());
                 }
             }
         });
+        
+        // Initialize scanner settings
+        barcodeScanner.getBarcodeView().setDecoderFactory(new com.journeyapps.barcodescanner.DefaultDecoderFactory());
+        barcodeScanner.initializeFromIntent(getIntent());
     }
 
     private void loadMyItems() {
@@ -214,10 +294,26 @@ public class QrScanActivity extends AppCompatActivity {
     }
 
     private void switchToScannerView() {
+        // Check permission trước khi start scanner
+        if (!hasCameraPermission) {
+            android.util.Log.w("QrScanActivity", "⚠️ Cannot start scanner - no camera permission");
+            Toast.makeText(this, "Vui lòng cấp quyền camera để quét QR", Toast.LENGTH_SHORT).show();
+            requestCameraPermission();
+            return;
+        }
+        
+        android.util.Log.d("QrScanActivity", "Starting camera scanner...");
         barcodeScanner.setVisibility(View.VISIBLE);
         generatorLayout.setVisibility(View.GONE);
         tvInstructions.setText("Hướng camera vào mã QR để quét");
-        barcodeScanner.resume();
+        
+        try {
+            barcodeScanner.resume();
+            android.util.Log.d("QrScanActivity", "✅ Camera scanner resumed");
+        } catch (Exception e) {
+            android.util.Log.e("QrScanActivity", "❌ Error starting scanner", e);
+            Toast.makeText(this, "Lỗi khởi động camera: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void switchToGeneratorView() {
@@ -234,8 +330,16 @@ public class QrScanActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (barcodeScanner != null && barcodeScanner.getVisibility() == View.VISIBLE) {
-            barcodeScanner.resume();
+        android.util.Log.d("QrScanActivity", "onResume - hasCameraPermission: " + hasCameraPermission);
+        
+        // CHỈ resume scanner khi có permission VÀ scanner visible
+        if (hasCameraPermission && barcodeScanner != null && barcodeScanner.getVisibility() == View.VISIBLE) {
+            try {
+                barcodeScanner.resume();
+                android.util.Log.d("QrScanActivity", "✅ Scanner resumed in onResume");
+            } catch (Exception e) {
+                android.util.Log.e("QrScanActivity", "❌ Error resuming scanner", e);
+            }
         }
     }
 
