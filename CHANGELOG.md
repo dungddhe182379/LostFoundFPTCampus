@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ Added
 
+#### QR Handover Validation & Karma Rewards
+- **Ownership Validation**
+  - Client-side check: Scanner cannot be item creator
+  - Prevents self-scanning fraud
+  - Shows user-friendly error message when blocked
+  
+- **Karma Rewards System**
+  - +10 karma for giver (person who found and returned item)
+  - +10 karma for receiver (person who scanned QR and received item)
+  - Automatic karma updates via backend API
+  
+- **Complete User Role Tracking**
+  - `lostUserId` - Original item owner
+  - `foundUserId` - Person who found item (giver)
+  - `returnedUserId` - Person who received item (scanner/receiver)
+  - All 3 fields updated on successful handover
+
+#### Multi-Role Statistics & Filtering
+- **HomeFragment Statistics**
+  - Query all items and filter by 3 role fields
+  - "Đã mất": Items with `lostUserId = currentUser` and status="lost"
+  - "Đã tìm thấy": Items with `foundUserId = currentUser` and status="found"
+  - "Đã trả": Items with `returnedUserId = currentUser` and status="returned"
+  - Accurate stats after QR handover completion
+  
+- **ProfileFragment Statistics**
+  - Count unique items user is involved in (any role)
+  - Prevents duplicate counting when user has multiple roles
+  - Shows total items across all activities (lost/found/returned)
+  
+- **MyItemsFragment Filtering**
+  - Filter by all 3 role fields (lostUserId, foundUserId, returnedUserId)
+  - Shows items user participated in with any role
+  - Tab filters work correctly with multi-role items
+
 #### User Role Tracking
 - **New Database Fields** (Version 3)
   - `lostUserId` - Track user who lost the item (owner)

@@ -107,7 +107,9 @@ API Response:
 
 ### Kịch bản 3: Bàn giao đồ (QR Code)
 ```
-User A scan QR để nhận lại iPhone
+User A scan QR để nhận lại iPhone (KHÔNG được scan QR của chính mình)
+↓
+Validation: userId(A) ≠ itemCreatorId ✅
 ↓
 POST /api/lostfound/items/38/confirm-handover
 Header: Authorization: Bearer {user_a_token}
@@ -116,11 +118,15 @@ Body: { qrToken: "TOKEN_1730678400000" }
 API Response:
 {
   userId: 10,
-  lostUserId: 5,
-  foundUserId: 10,
-  returnedUserId: 5,    ← API set = người scan QR
+  lostUserId: 5,        ← Người mất đồ ban đầu
+  foundUserId: 10,      ← Người tìm thấy (giver)
+  returnedUserId: 5,    ← Người nhận lại (receiver/scanner)
   status: "returned"
 }
+↓
+Karma Updates:
+- User 10 (giver): +10 karma
+- User 5 (receiver): +10 karma
 ```
 
 ---

@@ -43,6 +43,7 @@
     <!-- Divider & Border -->
     <color name="divider">#DFE6E9</color>
     <color name="border">#B2BEC3</color>
+    <color name="border_light">#E8E8E8</color>
     
     <!-- Card & Shadow -->
     <color name="card_background">#FFFFFF</color>

@@ -94,7 +94,7 @@ public class ProfileFragment extends Fragment {
         });
     }
 
-    private void loadUserProfile() {
+    private void    loadUserProfile() {
         String userName = prefsManager.getUserName();
         String userEmail = prefsManager.getUserEmail();
         int karma = prefsManager.getUserKarma();
@@ -115,12 +115,13 @@ public class ProfileFragment extends Fragment {
         long userId = prefsManager.getUserId();
         String token = "Bearer " + prefsManager.getToken();
         
-        // Load from API
+        // Load ALL items from API
         com.fptcampus.lostfoundfptcampus.model.api.ItemApi itemApi = 
             com.fptcampus.lostfoundfptcampus.util.ApiClient.getItemApi();
         
+        // Get ALL items và filter theo 3 role fields (lostUserId, foundUserId, returnedUserId)
         retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> call = 
-            itemApi.getItemsByUserId(token, userId);
+            itemApi.getAllItems(token);
         
         call.enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>>() {
             @Override
@@ -129,14 +130,47 @@ public class ProfileFragment extends Fragment {
                 retrofit2.Response<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> response) {
                 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem> items = response.body().getData();
+                    java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem> allItems = response.body().getData();
                     
-                    int totalItems = items != null ? items.size() : 0;
+                    // Đếm tất cả items liên quan đến user (bất kỳ vai trò nào)
+                    int totalItems = 0;
+                    if (allItems != null) {
+                        java.util.Set<Long> countedItemIds = new java.util.HashSet<>();
+                        
+                        for (com.fptcampus.lostfoundfptcampus.model.LostItem item : allItems) {
+                            boolean isRelated = false;
+                            
+                            // Check nếu user là người MẤT đồ
+                            if (item.getLostUserId() != null && item.getLostUserId() == userId) {
+                                isRelated = true;
+                            }
+                            
+                            // Check nếu user là người TÌM THẤY đồ
+                            if (item.getFoundUserId() != null && item.getFoundUserId() == userId) {
+                                isRelated = true;
+                            }
+                            
+                            // Check nếu user là người NHẬN LẠI đồ
+                            if (item.getReturnedUserId() != null && item.getReturnedUserId() == userId) {
+                                isRelated = true;
+                            }
+                            
+                            // Nếu có liên quan và chưa đếm (tránh đếm trùng)
+                            if (isRelated && !countedItemIds.contains(item.getId())) {
+                                totalItems++;
+                                countedItemIds.add(item.getId());
+                            }
+                        }
+                    }
+                    
+                    final int finalTotalItems = totalItems;
+                    
+                    android.util.Log.d("ProfileFragment", "Total items related to user: " + finalTotalItems);
                     
                     // Check if fragment is still attached before updating UI
                     if (isAdded() && getActivity() != null) {
                         requireActivity().runOnUiThread(() -> {
-                            tvTotalItems.setText(totalItems + " đồ vật");
+                            tvTotalItems.setText(finalTotalItems + " đồ vật");
                         });
                     }
                 }
@@ -146,6 +180,7 @@ public class ProfileFragment extends Fragment {
             public void onFailure(
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> call,
                 Throwable t) {
+                android.util.Log.e("ProfileFragment", "Failed to load statistics", t);
                 // Check if fragment is still attached before updating UI
                 if (isAdded() && getActivity() != null) {
                     requireActivity().runOnUiThread(() -> {

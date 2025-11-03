@@ -698,7 +698,10 @@ public class MapFragment extends Fragment implements LocationListener {
             requireActivity().runOnUiThread(() -> {
                 tvLostCount.setText(String.valueOf(finalLostCount));
                 tvFoundCount.setText(String.valueOf(finalFoundCount));
-                tvTotalCount.setText(String.valueOf(totalCount));
+                int countLost = Integer.parseInt(tvLostCount.getText().toString());
+                int countFound = Integer.parseInt(tvFoundCount.getText().toString());
+                int totalCountInt = countLost + countFound;
+                tvTotalCount.setText(String.valueOf(totalCountInt));
             });
         }
     }

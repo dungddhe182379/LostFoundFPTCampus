@@ -191,9 +191,24 @@ public class QrScanActivity extends AppCompatActivity {
         });
 
         actvItemSelector.setOnItemClickListener((parent, view, position, id) -> {
-            // Get item from FILTERED list, not myItems
-            selectedItem = filteredItems.get(position);
-            onItemSelected();
+            // Get selected text from AutoCompleteTextView
+            String selectedTitle = actvItemSelector.getText().toString();
+            
+            // Find item by title in filteredItems
+            selectedItem = null;
+            for (LostItem item : filteredItems) {
+                if (item.getTitle().equals(selectedTitle)) {
+                    selectedItem = item;
+                    break;
+                }
+            }
+            
+            if (selectedItem != null) {
+                android.util.Log.d("QrScanActivity", "Selected item: " + selectedItem.getTitle() + " (ID: " + selectedItem.getId() + ")");
+                onItemSelected();
+            } else {
+                android.util.Log.e("QrScanActivity", "Could not find item with title: " + selectedTitle);
+            }
         });
 
         btnGenerateQr.setOnClickListener(this::onBtnGenerateQrClick);
@@ -461,34 +476,78 @@ public class QrScanActivity extends AppCompatActivity {
     private void confirmHandoverAndUpdate(long itemId, String qrToken, long giverId, long receiverId, LostItem item) {
         String token = "Bearer " + prefsManager.getToken();
         
+        long itemCreatorId = giverId;
+        long scannerId = receiverId;
+        
+        // KIỂM TRA: Không cho phép người tạo item quét QR của chính mình
+        if (itemCreatorId == scannerId) {
+            android.util.Log.w("QrScanActivity", "❌ Cannot scan own item: userId=" + scannerId);
+            showErrorDialog("Không thể xác nhận", 
+                "Bạn không thể xác nhận bàn giao đồ vật của chính mình");
+            barcodeScanner.resume();
+            return;
+        }
+        
         // Hiển thị progress dialog
         android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
         progressDialog.setMessage("Đang xác nhận...");
         progressDialog.setCancelable(false);
         progressDialog.show();
         
-        android.util.Log.d("QrScanActivity", "Confirming handover for item " + itemId + " with token: " + qrToken);
+        // Xác định logic dựa trên status của item
+        String itemStatus = item.getStatus();
+        Long lostUserId, foundUserId, returnedUserId;
         
-        // Tạo request với QR token
-        ConfirmHandoverRequest request = new ConfirmHandoverRequest(qrToken);
+        if ("found".equals(itemStatus)) {
+            // Item được tạo bởi người TÌM THẤY -> người quét là người MẤT
+            foundUserId = itemCreatorId;      // Người tạo item (người tìm thấy)
+            lostUserId = scannerId;           // Người quét (người mất đồ)
+            returnedUserId = scannerId;       // Người quét (người nhận lại)
+            android.util.Log.d("QrScanActivity", "Case: FOUND item - Scanner is LOST user");
+        } else if ("lost".equals(itemStatus)) {
+            // Item được tạo bởi người MẤT -> người quét là người TÌM THẤY
+            lostUserId = itemCreatorId;       // Người tạo item (người mất)
+            foundUserId = scannerId;          // Người quét (người tìm thấy và trả)
+            returnedUserId = itemCreatorId;   // Người tạo item (người nhận lại)
+            android.util.Log.d("QrScanActivity", "Case: LOST item - Scanner is FOUND user");
+        } else {
+            progressDialog.dismiss();
+            android.util.Log.e("QrScanActivity", "Invalid item status: " + itemStatus);
+            showErrorDialog("Trạng thái không hợp lệ", "Đồ vật phải ở trạng thái 'lost' hoặc 'found'");
+            barcodeScanner.resume();
+            return;
+        }
         
-        // Call endpoint confirm-handover (thay vì update + create history riêng)
-        ApiClient.getItemApi().confirmHandover(token, itemId, request).enqueue(new Callback<ApiResponse<LostItem>>() {
+        android.util.Log.d("QrScanActivity", "Updating item: lostUserId=" + lostUserId + 
+            ", foundUserId=" + foundUserId + ", returnedUserId=" + returnedUserId);
+        
+        // Create UpdateItemRequest with 3 user role fields + status
+        com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest request = 
+            new com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest.Builder()
+                .setStatus("returned")
+                .setLostUserId(lostUserId)
+                .setFoundUserId(foundUserId)
+                .setReturnedUserId(returnedUserId)
+                .build();
+        
+        // Call updateItem API (PUT)
+        ApiClient.getItemApi().updateItem(token, itemId, request).enqueue(new Callback<ApiResponse<LostItem>>() {
             @Override
             public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
                 progressDialog.dismiss();
                 android.util.Log.d("QrScanActivity", "Confirm handover response code: " + response.code());
                 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    // Success - backend đã tự động update item và create history
+                    // Success - item updated
                     LostItem updatedItem = response.body().getData();
-                    android.util.Log.d("QrScanActivity", "✅ Handover confirmed successfully");
+                    android.util.Log.d("QrScanActivity", "✅ Item updated successfully");
                     android.util.Log.d("QrScanActivity", "Item status: " + updatedItem.getStatus());
+                    android.util.Log.d("QrScanActivity", "lostUserId: " + updatedItem.getLostUserId());
+                    android.util.Log.d("QrScanActivity", "foundUserId: " + updatedItem.getFoundUserId());
+                    android.util.Log.d("QrScanActivity", "returnedUserId: " + updatedItem.getReturnedUserId());
                     
-                    showSuccessDialog("Xác nhận thành công!", 
-                        "Đã hoàn tất giao dịch trả đồ.\n\n" +
-                        "📦 " + updatedItem.getTitle() + "\n" +
-                        "✅ Trạng thái: " + updatedItem.getStatus());
+                    // Update karma for BOTH lostUser and foundUser (+10 each)
+                    updateKarmaForBothUsers(updatedItem);
                     
                 } else if (response.isSuccessful() && response.body() != null) {
                     // API returned error
@@ -634,5 +693,135 @@ public class QrScanActivity extends AppCompatActivity {
         if (executorService != null) {
             executorService.shutdown();
         }
+    }
+
+    /**
+     * Update karma for BOTH lostUser and foundUser (+10 each)
+     */
+    private void updateKarmaForBothUsers(final LostItem item) {
+        String token = "Bearer " + prefsManager.getToken();
+        long currentUserId = prefsManager.getUserId();
+        
+        Long lostUserId = item.getLostUserId();
+        Long foundUserId = item.getFoundUserId();
+        
+        if (lostUserId == null || foundUserId == null) {
+            android.util.Log.e("QrScanActivity", "lostUserId or foundUserId is null");
+            showSuccessDialog("Xác nhận thành công!", 
+                "Đã hoàn tất giao dịch trả đồ.\n\n" +
+                "📦 " + item.getTitle() + "\n" +
+                "✅ Trạng thái: " + item.getStatus());
+            return;
+        }
+        
+        android.util.Log.d("QrScanActivity", "Updating karma for lostUserId=" + lostUserId + " and foundUserId=" + foundUserId);
+        
+        final int[] completedCalls = {0};
+        final int[] updatedKarma = {0};
+        
+        // Update karma for lostUser
+        ApiClient.getUserApi().getUserById(token, lostUserId).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
+                                   Response<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    com.fptcampus.lostfoundfptcampus.model.User lostUser = response.body().getData();
+                    int newKarma = lostUser.getKarma() + 10;
+                    lostUser.setKarma(newKarma);
+                    updateUserKarma(lostUser, currentUserId, updatedKarma);
+                    android.util.Log.d("QrScanActivity", "✅ LostUser karma updated: " + newKarma);
+                }
+                completedCalls[0]++;
+                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
+                android.util.Log.e("QrScanActivity", "Error getting lostUser: " + t.getMessage());
+                completedCalls[0]++;
+                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
+            }
+        });
+        
+        // Update karma for foundUser
+        ApiClient.getUserApi().getUserById(token, foundUserId).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
+                                   Response<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    com.fptcampus.lostfoundfptcampus.model.User foundUser = response.body().getData();
+                    int newKarma = foundUser.getKarma() + 10;
+                    foundUser.setKarma(newKarma);
+                    updateUserKarma(foundUser, currentUserId, updatedKarma);
+                    android.util.Log.d("QrScanActivity", "✅ FoundUser karma updated: " + newKarma);
+                }
+                completedCalls[0]++;
+                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
+                android.util.Log.e("QrScanActivity", "Error getting foundUser: " + t.getMessage());
+                completedCalls[0]++;
+                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
+            }
+        });
+    }
+    
+    private void updateUserKarma(com.fptcampus.lostfoundfptcampus.model.User user, long currentUserId, int[] updatedKarma) {
+        String token = "Bearer " + prefsManager.getToken();
+        
+        ApiClient.getUserApi().updateProfile(token, user).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
+                                   Response<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    com.fptcampus.lostfoundfptcampus.model.User updated = response.body().getData();
+                    if (updated.getId() == currentUserId) {
+                        prefsManager.saveUserKarma(updated.getKarma());
+                        updatedKarma[0] = updated.getKarma();
+                        android.util.Log.d("QrScanActivity", "✅ Current user karma saved: " + updated.getKarma());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
+                android.util.Log.e("QrScanActivity", "Error updating user karma: " + t.getMessage());
+            }
+        });
+    }
+    
+    private void checkBothUpdatesComplete(int completedCalls, LostItem item, int currentUserKarma) {
+        if (completedCalls >= 2) {
+            runOnUiThread(() -> {
+                if (currentUserKarma > 0) {
+                    showSuccessDialogWithKarma(item, currentUserKarma);
+                } else {
+                    showSuccessDialog("Xác nhận thành công!", 
+                        "Đã hoàn tất giao dịch trả đồ.\n\n" +
+                        "📦 " + item.getTitle() + "\n" +
+                        "✅ Trạng thái: " + item.getStatus());
+                }
+            });
+        }
+    }
+
+    private void showSuccessDialogWithKarma(LostItem item, int newKarma) {
+        String message = "🎉 Đã hoàn tất giao dịch trả đồ!\n\n";
+        message += "📦 " + item.getTitle() + "\n";
+        message += "✅ Trạng thái: " + item.getStatus() + "\n\n";
+        message += "⭐ Karma của bạn: " + newKarma + " điểm\n";
+        message += "(+10 điểm từ bàn giao thành công)";
+        
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("✅ Xác nhận thành công!");
+        builder.setMessage(message);
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            dialog.dismiss();
+            barcodeScanner.resume();
+        });
+        builder.setCancelable(false);
+        builder.show();
     }
 }

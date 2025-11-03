@@ -106,12 +106,13 @@ public class HomeFragment extends Fragment {
         long userId = prefsManager.getUserId();
         String token = "Bearer " + prefsManager.getToken();
         
-        // Load from API
+        // Load ALL items from API (không filter theo userId ở client)
         com.fptcampus.lostfoundfptcampus.model.api.ItemApi itemApi = 
             com.fptcampus.lostfoundfptcampus.util.ApiClient.getItemApi();
         
+        // Get ALL items và filter theo 3 role fields
         retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> call = 
-            itemApi.getItemsByUserId(token, userId);
+            itemApi.getAllItems(token);
         
         call.enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>>() {
             @Override
@@ -120,27 +121,41 @@ public class HomeFragment extends Fragment {
                 retrofit2.Response<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> response) {
                 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem> items = response.body().getData();
+                    java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem> allItems = response.body().getData();
                     
-                    if (items != null) {
-                        int myLostCount = 0;
-                        int myFoundCount = 0;
-                        int returnedCount = 0;
+                    if (allItems != null) {
+                        int myLostCount = 0;    // Items tôi BỊ MẤT (lostUserId)
+                        int myFoundCount = 0;   // Items tôi TÌM THẤY (foundUserId)
+                        int returnedCount = 0;  // Items tôi ĐÃ NHẬN LẠI (returnedUserId)
                         
-                        for (com.fptcampus.lostfoundfptcampus.model.LostItem item : items) {
-                            String status = item.getStatus();
-                            if ("lost".equalsIgnoreCase(status)) {
-                                myLostCount++;
-                            } else if ("found".equalsIgnoreCase(status)) {
-                                myFoundCount++;
-                            } else if ("returned".equalsIgnoreCase(status)) {
-                                returnedCount++;
+                        for (com.fptcampus.lostfoundfptcampus.model.LostItem item : allItems) {
+                            // Đếm items mà user là người MẤT đồ
+                            if (item.getLostUserId() != null && item.getLostUserId() == userId) {
+                                if ("lost".equalsIgnoreCase(item.getStatus())) {
+                                    myLostCount++;
+                                }
+                            }
+                            
+                            // Đếm items mà user là người TÌM THẤY
+                            if (item.getFoundUserId() != null && item.getFoundUserId() == userId) {
+                                if ("found".equalsIgnoreCase(item.getStatus())) {
+                                    myFoundCount++;
+                                }
+                            }
+                            
+                            // Đếm items mà user là người NHẬN LẠI (đã hoàn tất)
+                            if (item.getReturnedUserId() != null && item.getReturnedUserId() == userId) {
+                                if ("returned".equalsIgnoreCase(item.getStatus())) {
+                                    returnedCount++;
+                                }
                             }
                         }
                         
                         final int finalLostCount = myLostCount;
                         final int finalFoundCount = myFoundCount;
                         final int finalReturnedCount = returnedCount;
+                        
+                        android.util.Log.d("HomeFragment", "Statistics - Lost: " + finalLostCount + ", Found: " + finalFoundCount + ", Returned: " + finalReturnedCount);
                         
                         // Check if fragment is still attached before updating UI
                         if (isAdded() && getActivity() != null) {
@@ -158,7 +173,7 @@ public class HomeFragment extends Fragment {
             public void onFailure(
                 retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<com.fptcampus.lostfoundfptcampus.model.LostItem>>> call,
                 Throwable t) {
-                // Silently fail or show error
+                android.util.Log.e("HomeFragment", "Failed to load statistics", t);
             }
         });
     }

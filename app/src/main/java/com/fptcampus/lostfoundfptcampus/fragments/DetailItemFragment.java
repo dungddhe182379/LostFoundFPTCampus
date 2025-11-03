@@ -35,6 +35,7 @@ public class DetailItemFragment extends Fragment {
 
     private LostItem currentItem;
     private SharedPreferencesManager prefsManager;
+    private com.fptcampus.lostfoundfptcampus.navigation.NavigationHost navigationHost;
 
     public static DetailItemFragment newInstance(LostItem item) {
         DetailItemFragment fragment = new DetailItemFragment();
@@ -63,6 +64,12 @@ public class DetailItemFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         
         prefsManager = new SharedPreferencesManager(requireContext());
+        
+        // Initialize navigationHost
+        if (getActivity() instanceof com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) {
+            navigationHost = (com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) getActivity();
+        }
+        
         bindingView(view);
         bindingAction();
         loadItemData();
@@ -199,12 +206,10 @@ public class DetailItemFragment extends Fragment {
     }
 
     private void onBtnGenerateQrClick(View view) {
-        if (currentItem != null) {
-            Intent intent = new Intent(requireContext(), QrScanActivity.class);
-            intent.putExtra("mode", "generate");
-            intent.putExtra("itemId", currentItem.getId());
-            intent.putExtra("itemTitle", currentItem.getTitle());
-            startActivity(intent);
+        if (currentItem != null && navigationHost != null) {
+            // Navigate to QRGeneratorFragment with preselected item
+            QRGeneratorFragment qrFragment = QRGeneratorFragment.newInstance(currentItem.getId());
+            navigationHost.navigateTo(qrFragment, true);
         }
     }
 

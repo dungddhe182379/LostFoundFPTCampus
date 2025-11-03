@@ -27,6 +27,15 @@ public class UpdateItemRequest {
     
     @Expose
     private String imageUrl;
+    
+    @Expose
+    private Long lostUserId;
+    
+    @Expose
+    private Long foundUserId;
+    
+    @Expose
+    private Long returnedUserId;
 
     // Constructors
     public UpdateItemRequest() {
@@ -68,6 +77,21 @@ public class UpdateItemRequest {
 
         public Builder setImageUrl(String imageUrl) {
             request.imageUrl = imageUrl;
+            return this;
+        }
+
+        public Builder setLostUserId(Long lostUserId) {
+            request.lostUserId = lostUserId;
+            return this;
+        }
+
+        public Builder setFoundUserId(Long foundUserId) {
+            request.foundUserId = foundUserId;
+            return this;
+        }
+
+        public Builder setReturnedUserId(Long returnedUserId) {
+            request.returnedUserId = returnedUserId;
             return this;
         }
 
@@ -131,5 +155,29 @@ public class UpdateItemRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Long getLostUserId() {
+        return lostUserId;
+    }
+
+    public void setLostUserId(Long lostUserId) {
+        this.lostUserId = lostUserId;
+    }
+
+    public Long getFoundUserId() {
+        return foundUserId;
+    }
+
+    public void setFoundUserId(Long foundUserId) {
+        this.foundUserId = foundUserId;
+    }
+
+    public Long getReturnedUserId() {
+        return returnedUserId;
+    }
+
+    public void setReturnedUserId(Long returnedUserId) {
+        this.returnedUserId = returnedUserId;
     }
 }

@@ -131,25 +131,50 @@ public class MyItemsFragment extends Fragment {
         long currentUserId = prefsManager.getUserId();
 
         executorService.execute(() -> {
-            List<LostItem> items;
+            // Lấy TẤT CẢ items từ database
+            List<LostItem> allItems = database.lostItemDao().getAllItems();
+            List<LostItem> filteredItems = new java.util.ArrayList<>();
             
-            if ("all".equals(currentFilter)) {
-                items = database.lostItemDao().getItemsByUserId(currentUserId);
-            } else {
-                items = database.lostItemDao().getItemsByUserIdAndStatus(currentUserId, currentFilter);
+            // Filter theo 3 role fields (lostUserId, foundUserId, returnedUserId)
+            for (LostItem item : allItems) {
+                boolean isRelated = false;
+                boolean matchesStatus = true;
+                
+                // Check xem user có liên quan đến item này không
+                if (item.getLostUserId() != null && item.getLostUserId() == currentUserId) {
+                    isRelated = true;
+                }
+                if (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId) {
+                    isRelated = true;
+                }
+                if (item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId) {
+                    isRelated = true;
+                }
+                
+                // Nếu không phải "all", kiểm tra status filter
+                if (!"all".equals(currentFilter)) {
+                    matchesStatus = currentFilter.equalsIgnoreCase(item.getStatus());
+                }
+                
+                // Thêm vào list nếu có liên quan VÀ match status
+                if (isRelated && matchesStatus) {
+                    filteredItems.add(item);
+                }
             }
 
             requireActivity().runOnUiThread(() -> {
                 swipeRefresh.setRefreshing(false);
                 
-                if (items.isEmpty()) {
+                android.util.Log.d("MyItemsFragment", "Found " + filteredItems.size() + " items for user " + currentUserId + " with filter: " + currentFilter);
+                
+                if (filteredItems.isEmpty()) {
                     tvEmptyState.setVisibility(View.VISIBLE);
                     recyclerView.setVisibility(View.GONE);
                     updateEmptyStateMessage();
                 } else {
                     tvEmptyState.setVisibility(View.GONE);
                     recyclerView.setVisibility(View.VISIBLE);
-                    adapter.setItems(items);
+                    adapter.setItems(filteredItems);
                 }
             });
         });
