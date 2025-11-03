@@ -56,30 +56,12 @@
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- List Item Activity -->
-        <activity
-            android:name=".controller.ListItemActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
         <!-- Add Item Activity -->
         <activity
             android:name=".controller.AddItemActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
-
-        <!-- Detail Item Activity -->
-        <activity
-            android:name=".controller.DetailItemActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- Map Activity -->
-        <activity
-            android:name=".controller.MapActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
 
         <!-- QR Scan Activity -->
         <activity

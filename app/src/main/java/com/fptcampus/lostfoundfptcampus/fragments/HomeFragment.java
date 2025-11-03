@@ -14,7 +14,6 @@ import androidx.fragment.app.Fragment;
 
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.controller.AddItemActivity;
-import com.fptcampus.lostfoundfptcampus.controller.MapActivity;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
@@ -87,8 +86,11 @@ public class HomeFragment extends Fragment {
         });
 
         cardViewMap.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), MapActivity.class);
-            startActivity(intent);
+            // Navigate to MapFragment
+            if (navigationHost != null) {
+                MapFragment mapFragment = new MapFragment();
+                navigationHost.navigateTo(mapFragment, true);
+            }
         });
     }
 

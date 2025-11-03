@@ -14,7 +14,6 @@ import androidx.fragment.app.Fragment;
 
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.controller.LeaderboardActivity;
-import com.fptcampus.lostfoundfptcampus.controller.ListItemActivity;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;

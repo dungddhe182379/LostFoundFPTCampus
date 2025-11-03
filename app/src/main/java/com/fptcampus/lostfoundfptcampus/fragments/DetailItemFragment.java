@@ -13,7 +13,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.fptcampus.lostfoundfptcampus.R;
-import com.fptcampus.lostfoundfptcampus.controller.MapActivity;
 import com.fptcampus.lostfoundfptcampus.controller.QrScanActivity;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.util.ErrorDialogHelper;
