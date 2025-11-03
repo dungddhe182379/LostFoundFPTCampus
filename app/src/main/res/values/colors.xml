@@ -1,5 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base Colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary Brand Colors - Modern Blue/Purple Gradient -->
+    <color name="primary">#6C5CE7</color> <!-- Purple -->
+    <color name="primary_dark">#5F3DC4</color> <!-- Dark Purple -->
+    <color name="primary_light">#A29BFE</color> <!-- Light Purple -->
+    
+    <color name="secondary">#0984E3</color> <!-- Blue -->
+    <color name="secondary_dark">#0652DD</color> <!-- Dark Blue -->
+    <color name="secondary_light">#74B9FF</color> <!-- Light Blue -->
+    
+    <color name="accent">#00CEC9</color> <!-- Turquoise -->
+    <color name="accent_dark">#00B894</color> <!-- Dark Turquoise -->
+    
+    <!-- Status Colors -->
+    <color name="success">#00B894</color> <!-- Green -->
+    <color name="warning">#FDCB6E</color> <!-- Yellow -->
+    <color name="error">#FF7675</color> <!-- Red -->
+    <color name="info">#74B9FF</color> <!-- Light Blue -->
+    
+    <!-- Item Status Colors -->
+    <color name="status_lost">#FF7675</color> <!-- Red -->
+    <color name="status_found">#00B894</color> <!-- Green -->
+    <color name="status_returned">#FDCB6E</color> <!-- Yellow -->
+    
+    <!-- Background Colors -->
+    <color name="background">#F5F6FA</color> <!-- Light Gray -->
+    <color name="background_dark">#2D3436</color> <!-- Dark Gray -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_dark">#353B48</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#2D3436</color> <!-- Dark Gray -->
+    <color name="text_secondary">#636E72</color> <!-- Medium Gray -->
+    <color name="text_hint">#B2BEC3</color> <!-- Light Gray -->
+    <color name="text_disabled">#DFE6E9</color> <!-- Very Light Gray -->
+    <color name="text_on_primary">#FFFFFF</color>
+    
+    <!-- Divider & Border -->
+    <color name="divider">#DFE6E9</color>
+    <color name="border">#B2BEC3</color>
+    
+    <!-- Card & Shadow -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="shadow">#80000000</color> <!-- 50% Black -->
+    
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#6C5CE7</color> <!-- Purple -->
+    <color name="gradient_end">#0984E3</color> <!-- Blue -->
+    
+    <!-- Bottom Navigation -->
+    <color name="bottom_nav_selected">#6C5CE7</color>
+    <color name="bottom_nav_unselected">#B2BEC3</color>
+    
+    <!-- Transparent Overlays -->
+    <color name="overlay_dark">#80000000</color> <!-- 50% Black -->
+    <color name="overlay_light">#80FFFFFF</color> <!-- 50% White -->
 </resources>

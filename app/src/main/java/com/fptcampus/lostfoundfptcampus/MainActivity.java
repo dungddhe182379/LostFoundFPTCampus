@@ -3,27 +3,26 @@ package com.fptcampus.lostfoundfptcampus;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
-import com.fptcampus.lostfoundfptcampus.controller.AddItemActivity;
 import com.fptcampus.lostfoundfptcampus.controller.ListItemActivity;
 import com.fptcampus.lostfoundfptcampus.controller.LoginActivity;
+import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
 import com.fptcampus.lostfoundfptcampus.util.SyncService;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NavigationHost {
     private MaterialToolbar toolbar;
-    private TextView tvWelcome, tvKarma;
-    private MaterialCardView cardItems, cardMap, cardQR, cardLeaderboard;
-    private MaterialButton btnLogout;
+    private BottomNavigationView bottomNavigation;
 
     private SharedPreferencesManager prefsManager;
     private SyncService syncService;
@@ -45,65 +44,77 @@ public class MainActivity extends AppCompatActivity {
         }
 
         bindingView();
-        bindingAction();
-        loadUserInfo();
+        setupBottomNavigation();
+        setupBackPressedHandler();
+        
+        // Load default fragment (Items list)
+        if (savedInstanceState == null) {
+            navigateToTab(1); // Start with Items tab (index 1)
+        }
         
         // Initialize sync service
         syncService = new SyncService(this);
         checkAndSyncOfflineItems();
     }
+    
+    private void setupBackPressedHandler() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    getSupportFragmentManager().popBackStack();
+                } else {
+                    finish();
+                }
+            }
+        });
+    }
 
     private void bindingView() {
         toolbar = findViewById(R.id.toolbar);
-        tvWelcome = findViewById(R.id.tvWelcome);
-        tvKarma = findViewById(R.id.tvKarma);
-        cardItems = findViewById(R.id.cardItems);
-        cardMap = findViewById(R.id.cardMap);
-        cardQR = findViewById(R.id.cardQR);
-        cardLeaderboard = findViewById(R.id.cardLeaderboard);
-        btnLogout = findViewById(R.id.btnLogout);
+        bottomNavigation = findViewById(R.id.bottomNavigation);
     }
 
-    private void bindingAction() {
-        cardItems.setOnClickListener(this::onCardItemsClick);
-        cardMap.setOnClickListener(this::onCardMapClick);
-        cardQR.setOnClickListener(this::onCardQRClick);
-        cardLeaderboard.setOnClickListener(this::onCardLeaderboardClick);
-        btnLogout.setOnClickListener(this::onBtnLogoutClick);
+    private void setupBottomNavigation() {
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            
+            if (itemId == R.id.navigation_home) {
+                // TODO: Navigate to HomeFragment when created
+                showMessage("Home - Coming soon");
+                return true;
+            } else if (itemId == R.id.navigation_items) {
+                navigateToItemsList();
+                return true;
+            } else if (itemId == R.id.navigation_qr) {
+                navigateToQR();
+                return true;
+            } else if (itemId == R.id.navigation_map) {
+                navigateToMap();
+                return true;
+            } else if (itemId == R.id.navigation_profile) {
+                // TODO: Navigate to ProfileFragment when created
+                showMessage("Profile - Coming soon");
+                return true;
+            }
+            
+            return false;
+        });
     }
 
-    private void loadUserInfo() {
-        String userName = prefsManager.getUserName();
-        int karma = prefsManager.getUserKarma();
-
-        tvWelcome.setText("Xin chào, " + userName + "!");
-        tvKarma.setText("Karma: " + karma + " điểm");
-    }
-
-    private void onCardItemsClick(View view) {
+    private void navigateToItemsList() {
         Intent intent = new Intent(this, ListItemActivity.class);
         startActivity(intent);
     }
 
-    private void onCardMapClick(View view) {
+    private void navigateToMap() {
         Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.MapActivity.class);
         startActivity(intent);
     }
 
-    private void onCardQRClick(View view) {
+    private void navigateToQR() {
         Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.QrScanActivity.class);
         startActivity(intent);
-    }
-
-    private void onCardLeaderboardClick(View view) {
-        Intent intent = new Intent(this, com.fptcampus.lostfoundfptcampus.controller.LeaderboardActivity.class);
-        startActivity(intent);
-    }
-
-    private void onBtnLogoutClick(View view) {
-        prefsManager.clearAll();
-        ApiClient.reset();
-        navigateToLogin();
     }
 
     private void navigateToLogin() {
@@ -111,6 +122,48 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    // NavigationHost implementation
+    @Override
+    public void navigateTo(Fragment fragment, boolean addToBackStack) {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragmentContainer, fragment);
+        if (addToBackStack) {
+            transaction.addToBackStack(null);
+        }
+        transaction.commit();
+    }
+
+    @Override
+    public void navigateToTab(int position) {
+        if (position >= 0 && position < bottomNavigation.getMenu().size()) {
+            bottomNavigation.setSelectedItemId(
+                    bottomNavigation.getMenu().getItem(position).getItemId()
+            );
+        }
+    }
+
+    @Override
+    public void showMessage(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void logout() {
+        prefsManager.clearAll();
+        ApiClient.reset();
+        navigateToLogin();
+    }
+
+    @Override
+    public int getCurrentUserId() {
+        return (int) prefsManager.getUserId();
+    }
+
+    @Override
+    public String getCurrentUsername() {
+        return prefsManager.getUserName();
     }
 
     private void checkAndSyncOfflineItems() {
@@ -175,7 +228,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        loadUserInfo();
         checkAndSyncOfflineItems();
     }
     

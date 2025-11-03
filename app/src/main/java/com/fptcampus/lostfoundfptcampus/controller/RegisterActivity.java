@@ -44,6 +44,9 @@ public class RegisterActivity extends AppCompatActivity {
         btnRegister = findViewById(R.id.btnRegister);
         tvLogin = findViewById(R.id.tvLogin);
         progressBar = findViewById(R.id.progressBar);
+        
+        // Back button
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
     }
 
     private void bindingAction() {
