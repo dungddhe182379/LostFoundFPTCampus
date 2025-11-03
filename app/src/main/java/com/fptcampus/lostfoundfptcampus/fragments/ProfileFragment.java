@@ -13,7 +13,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.fptcampus.lostfoundfptcampus.R;
-import com.fptcampus.lostfoundfptcampus.controller.LeaderboardActivity;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
@@ -31,7 +30,7 @@ public class ProfileFragment extends Fragment {
     private ExecutorService executorService;
     
     private TextView tvAvatarInitial, tvUserName, tvUserEmail, tvKarmaScore, tvTotalItems;
-    private MaterialCardView cardMyItems, cardLeaderboard;
+    private MaterialCardView cardMyItems;
     private MaterialButton btnLogout;
 
     @Override
@@ -69,7 +68,6 @@ public class ProfileFragment extends Fragment {
         tvKarmaScore = view.findViewById(R.id.tvKarmaScore);
         tvTotalItems = view.findViewById(R.id.tvTotalItems);
         cardMyItems = view.findViewById(R.id.cardMyItems);
-        cardLeaderboard = view.findViewById(R.id.cardLeaderboard);
         btnLogout = view.findViewById(R.id.btnLogout);
     }
 
@@ -80,11 +78,6 @@ public class ProfileFragment extends Fragment {
                 MyItemsFragment myItemsFragment = new MyItemsFragment();
                 navigationHost.navigateTo(myItemsFragment, true);
             }
-        });
-
-        cardLeaderboard.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), LeaderboardActivity.class);
-            startActivity(intent);
         });
 
         btnLogout.setOnClickListener(v -> {

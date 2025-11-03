@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -53,7 +54,8 @@ public class ReportItemFragment extends Fragment {
     private Chip chipLost, chipFound;
     private AutoCompleteTextView spinnerCategory;
     private TextInputEditText etTitle, etDescription, etLocation, etDate, etContactInfo;
-    private ImageView ivItemImage, ivAddImage;
+    private ImageView ivItemImage;
+    private LinearLayout ivAddImage;
     private MaterialButton btnSubmit, btnClear;
     
     private SharedPreferencesManager prefsManager;
