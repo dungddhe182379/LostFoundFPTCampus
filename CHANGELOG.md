@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-11-03
+
+### ✨ Added
+
+#### User Role Tracking
+- **New Database Fields** (Version 3)
+  - `lostUserId` - Track user who lost the item (owner)
+  - `foundUserId` - Track user who found the item
+  - `returnedUserId` - Track user who received item back after handover
+  - Database migration from v2 to v3 with ALTER TABLE statements
+
+#### API Integration
+- **Updated API Support (v1.2)**
+  - Auto-populate `lostUserId` when creating item with status="lost"
+  - Auto-populate `foundUserId` when creating item with status="found"
+  - Auto-set `returnedUserId` when confirming handover via QR code
+  - All GET endpoints return items with new user role fields
+
+#### Model Updates
+- **LostItem.java**
+  - Added `lostUserId`, `foundUserId`, `returnedUserId` fields
+  - Added Room @ColumnInfo annotations
+  - Added Gson @SerializedName for API parsing
+  - Added getters/setters for new fields
+  - All fields nullable (Long type) to support NULL values
+
+#### Database
+- **AppDatabase.java**
+  - Upgraded from version 2 to 3
+  - Added MIGRATION_2_3 with SQL ALTER TABLE
+  - Supports backward compatibility with fallback migration
+
+#### Documentation
+- Created `DATABASE_MIGRATION_GUIDE.md` - Complete migration guide
+- Created `DB-migration-v2-to-v3.sql` - SQL migration script
+- Created `API_UPDATE_SUMMARY.md` - Summary of API changes
+- Updated `LOSTFOUND_API_DOCUMENTATION.md` with new fields
+
+### 🔧 Changed
+- All fragments/activities automatically support new fields
+- No UI changes required (fields are optional)
+- Gson automatically parses new fields from API responses
+
+### 📝 Notes
+- **No Breaking Changes** - All existing code continues to work
+- **Backward Compatible** - Migration handles existing data gracefully
+- **Optional Feature** - UI can display user roles later if needed
+
+---
+
 ## [1.0.0] - 2025-11-01
 
 ### ✨ Added

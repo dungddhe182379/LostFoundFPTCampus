@@ -28,6 +28,21 @@ public class LostItem {
     @SerializedName("userId")
     private long userId;
 
+    @ColumnInfo(name = "lost_user_id")
+    @Expose
+    @SerializedName("lostUserId")
+    private Long lostUserId; // User who lost the item (owner)
+
+    @ColumnInfo(name = "found_user_id")
+    @Expose
+    @SerializedName("foundUserId")
+    private Long foundUserId; // User who found the item
+
+    @ColumnInfo(name = "returned_user_id")
+    @Expose
+    @SerializedName("returnedUserId")
+    private Long returnedUserId; // User who received the item back
+
     @ColumnInfo(name = "title")
     @Expose
     private String title;
@@ -102,6 +117,30 @@ public class LostItem {
 
     public void setUserId(long userId) {
         this.userId = userId;
+    }
+
+    public Long getLostUserId() {
+        return lostUserId;
+    }
+
+    public void setLostUserId(Long lostUserId) {
+        this.lostUserId = lostUserId;
+    }
+
+    public Long getFoundUserId() {
+        return foundUserId;
+    }
+
+    public void setFoundUserId(Long foundUserId) {
+        this.foundUserId = foundUserId;
+    }
+
+    public Long getReturnedUserId() {
+        return returnedUserId;
+    }
+
+    public void setReturnedUserId(Long returnedUserId) {
+        this.returnedUserId = returnedUserId;
     }
 
     public String getTitle() {
