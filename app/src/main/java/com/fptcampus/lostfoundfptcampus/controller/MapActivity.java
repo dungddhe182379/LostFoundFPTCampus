@@ -64,6 +64,13 @@ public class MapActivity extends AppCompatActivity {
     private ImageView ivItemPreview;
     private TextView tvItemTitle, tvItemCategory;
     private MaterialButton btnViewDetail, btnShowRoute;
+    
+    // Search & Filter
+    private androidx.appcompat.widget.SearchView searchView;
+    private com.google.android.material.chip.Chip chipAll, chipLost, chipFound;
+    private List<LostItem> allItems = new ArrayList<>();
+    private String currentSearchQuery = "";
+    private String currentStatusFilter = "all"; // "all", "lost", "found"
 
     private IMapController mapController;
     private SharedPreferencesManager prefsManager;
@@ -103,6 +110,12 @@ public class MapActivity extends AppCompatActivity {
         tvItemCategory = findViewById(R.id.tvItemCategory);
         btnViewDetail = findViewById(R.id.btnViewDetail);
         
+        // Search & Filter
+        searchView = findViewById(R.id.searchView);
+        chipAll = findViewById(R.id.chipAll);
+        chipLost = findViewById(R.id.chipLost);
+        chipFound = findViewById(R.id.chipFound);
+        
         // Create "Chỉ đường" button programmatically
         btnShowRoute = new MaterialButton(this);
         btnShowRoute.setText("Chỉ đường");
@@ -115,6 +128,55 @@ public class MapActivity extends AppCompatActivity {
         fabMyLocation.setOnClickListener(this::onFabMyLocationClick);
         fabFilter.setOnClickListener(this::onFabFilterClick);
         btnViewDetail.setOnClickListener(this::onBtnViewDetailClick);
+        
+        // Search listener
+        searchView.setOnQueryTextListener(new androidx.appcompat.widget.SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                currentSearchQuery = query.toLowerCase().trim();
+                applyFilters();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                currentSearchQuery = newText.toLowerCase().trim();
+                applyFilters();
+                return true;
+            }
+        });
+        
+        // Filter chip listeners
+        chipAll.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentStatusFilter = "all";
+                chipLost.setChecked(false);
+                chipFound.setChecked(false);
+                applyFilters();
+            }
+        });
+        
+        chipLost.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentStatusFilter = "lost";
+                chipAll.setChecked(false);
+                chipFound.setChecked(false);
+                applyFilters();
+            } else if (!chipFound.isChecked() && !chipAll.isChecked()) {
+                chipAll.setChecked(true);
+            }
+        });
+        
+        chipFound.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentStatusFilter = "found";
+                chipAll.setChecked(false);
+                chipLost.setChecked(false);
+                applyFilters();
+            } else if (!chipLost.isChecked() && !chipAll.isChecked()) {
+                chipAll.setChecked(true);
+            }
+        });
     }
 
     private void initializeMap() {
@@ -313,7 +375,8 @@ public class MapActivity extends AppCompatActivity {
             }
 
             runOnUiThread(() -> {
-                displayItemsOnMap(localItems);
+                allItems = localItems != null ? new ArrayList<>(localItems) : new ArrayList<>();
+                applyFilters();
             });
         });
 
@@ -340,7 +403,8 @@ public class MapActivity extends AppCompatActivity {
                     if (response.isSuccessful() && response.body() != null) {
                         ApiResponse<List<LostItem>> apiResponse = response.body();
                         if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                            displayItemsOnMap(apiResponse.getData());
+                            allItems = new ArrayList<>(apiResponse.getData());
+                            applyFilters();
                         }
                     }
                 }
@@ -846,9 +910,29 @@ public class MapActivity extends AppCompatActivity {
                     .start();
             })
             .start();
-            
-        ErrorDialogHelper.showError(this, "Chức năng đang phát triển",
-                "Chức năng lọc đồ thất lạc sẽ được cập nhật trong phiên bản tiếp theo");
+        
+        // Toggle search/filter panel visibility
+        View filterPanel = findViewById(R.id.searchView).getParent() instanceof View ? 
+            (View) findViewById(R.id.searchView).getParent() : null;
+        
+        if (filterPanel != null) {
+            if (filterPanel.getVisibility() == View.VISIBLE) {
+                // Hide with animation
+                filterPanel.animate()
+                    .alpha(0f)
+                    .setDuration(200)
+                    .withEndAction(() -> filterPanel.setVisibility(View.GONE))
+                    .start();
+            } else {
+                // Show with animation
+                filterPanel.setAlpha(0f);
+                filterPanel.setVisibility(View.VISIBLE);
+                filterPanel.animate()
+                    .alpha(1f)
+                    .setDuration(200)
+                    .start();
+            }
+        }
     }
 
     private void onBtnViewDetailClick(View view) {
@@ -1189,6 +1273,55 @@ public class MapActivity extends AppCompatActivity {
                 preventAutoClose = true;
             }, 100);
         }
+    }
+
+    /**
+     * Apply search and filter to items
+     * Note: Items with status "returned" are ALWAYS hidden (mặc định ẩn)
+     */
+    private void applyFilters() {
+        List<LostItem> filteredItems = new ArrayList<>();
+        
+        for (LostItem item : allItems) {
+            // Filter 1: ALWAYS hide returned items (mặc định ẩn đã trả)
+            if ("returned".equalsIgnoreCase(item.getStatus())) {
+                continue;
+            }
+            
+            // Filter 2: Status filter (lost/found/all)
+            if (!currentStatusFilter.equals("all")) {
+                if (!currentStatusFilter.equalsIgnoreCase(item.getStatus())) {
+                    continue;
+                }
+            }
+            
+            // Filter 3: Search query (search in title, description, and category)
+            if (!currentSearchQuery.isEmpty()) {
+                String title = item.getTitle() != null ? item.getTitle().toLowerCase() : "";
+                String description = item.getDescription() != null ? item.getDescription().toLowerCase() : "";
+                String category = item.getCategory() != null ? item.getCategory().toLowerCase() : "";
+                
+                if (!title.contains(currentSearchQuery) && 
+                    !description.contains(currentSearchQuery) &&
+                    !category.contains(currentSearchQuery)) {
+                    continue;
+                }
+            }
+            
+            // Passed all filters
+            filteredItems.add(item);
+        }
+        
+        // Display filtered items on map
+        displayItemsOnMap(filteredItems);
+        
+        // Show result count in log
+        String statusText = currentStatusFilter.equals("all") ? "tất cả" : 
+                           currentStatusFilter.equals("lost") ? "thất lạc" : "đã tìm thấy";
+        String searchText = currentSearchQuery.isEmpty() ? "" : " cho \"" + currentSearchQuery + "\"";
+        
+        android.util.Log.d("MapActivity", "Hiển thị " + filteredItems.size() + "/" + allItems.size() + 
+            " items - " + statusText + " (luôn ẩn đã trả)" + searchText);
     }
 
     @Override

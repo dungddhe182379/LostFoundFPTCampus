@@ -16,6 +16,57 @@
         app:titleTextColor="@color/white"
         app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel" />
 
+    <!-- Search & Filter Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/white"
+        android:elevation="2dp"
+        android:padding="8dp">
+
+        <!-- Search Bar -->
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:drawable/edit_text"
+            android:queryHint="Tìm kiếm đồ thất lạc..."
+            android:iconifiedByDefault="false" />
+
+        <!-- Filter Chips -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:singleSelection="false"
+            app:selectionRequired="false">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipAll"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tất cả"
+                android:checked="true" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipLost"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔴 Thất lạc" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFound"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🟢 Đã tìm thấy" />
+        </com.google.android.material.chip.ChipGroup>
+    </LinearLayout>
+
     <!-- Map Container -->
     <FrameLayout
         android:layout_width="match_parent"
@@ -95,24 +146,6 @@
                 </LinearLayout>
 
                 <!-- Returned - Vàng -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="4dp">
-                    <View
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:background="#FFC107"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginEnd="8dp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Đã trả"
-                        android:textSize="12sp"
-                        android:textColor="#333333" />
-                </LinearLayout>
 
                 <!-- FPT - Xanh dương -->
                 <LinearLayout
