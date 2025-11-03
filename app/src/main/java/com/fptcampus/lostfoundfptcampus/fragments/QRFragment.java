@@ -431,49 +431,76 @@ public class QRFragment extends Fragment {
      */
     /**
      * Fix item fields if backend didn't set them correctly
-     * LOGIC:
-     * - Nếu item ban đầu là "lost" → sau scan thành "returned"
-     *   → lostUserId = creator, foundUserId = scanner, returnedUserId = creator
-     * - Nếu item ban đầu là "found" → sau scan thành "returned"
-     *   → foundUserId = creator, returnedUserId = scanner
+     * LOGIC CHUẨN:
+     * - Item "lost" (người mất tạo QR) → scanner nhặt được → scanner trả lại creator
+     *   → lostUserId=creator, foundUserId=scanner, returnedUserId=creator
+     * - Item "found" (người nhặt tạo QR) → scanner là chủ → creator trả lại scanner  
+     *   → foundUserId=creator, lostUserId=(scanner nếu chưa có), returnedUserId=scanner
      */
     private void fixItemFieldsIfNeeded(LostItem updatedItem, long scannerId, long creatorId, LostItem originalItem) {
         boolean needsFix = false;
         String originalStatus = originalItem.getStatus() != null ? originalItem.getStatus().toLowerCase() : "";
         
-        // Nếu item ban đầu là LOST (người mất đồ tạo QR)
+        android.util.Log.d("QRFragment", "=== FIX ITEM FIELDS ===");
+        android.util.Log.d("QRFragment", "Original status: " + originalStatus);
+        android.util.Log.d("QRFragment", "Creator ID: " + creatorId + ", Scanner ID: " + scannerId);
+        
+        // CASE 1: Item ban đầu là LOST (người mất đồ tạo QR)
         if ("lost".equals(originalStatus)) {
+            android.util.Log.d("QRFragment", "Case: LOST item - creator mất đồ, scanner tìm thấy và trả lại");
+            
+            // lostUserId = creator (người tạo = người mất)
             if (updatedItem.getLostUserId() == null || updatedItem.getLostUserId() != creatorId) {
-                updatedItem.setLostUserId(creatorId);  // Người tạo là người mất
+                updatedItem.setLostUserId(creatorId);
                 needsFix = true;
+                android.util.Log.d("QRFragment", "Fix: Set lostUserId = " + creatorId);
             }
+            
+            // foundUserId = scanner (người quét = người tìm thấy)
             if (updatedItem.getFoundUserId() == null || updatedItem.getFoundUserId() != scannerId) {
-                updatedItem.setFoundUserId(scannerId);  // Người quét là người tìm thấy
+                updatedItem.setFoundUserId(scannerId);
                 needsFix = true;
+                android.util.Log.d("QRFragment", "Fix: Set foundUserId = " + scannerId);
             }
+            
+            // returnedUserId = creator (người mất nhận lại)
             if (updatedItem.getReturnedUserId() == null || updatedItem.getReturnedUserId() != creatorId) {
-                updatedItem.setReturnedUserId(creatorId);  // Người mất nhận lại
+                updatedItem.setReturnedUserId(creatorId);
                 needsFix = true;
+                android.util.Log.d("QRFragment", "Fix: Set returnedUserId = " + creatorId);
             }
         }
-        // Nếu item ban đầu là FOUND (người nhặt được tạo QR)
+        // CASE 2: Item ban đầu là FOUND (người nhặt được tạo QR)
         else if ("found".equals(originalStatus)) {
+            android.util.Log.d("QRFragment", "Case: FOUND item - creator nhặt được, scanner là chủ nhận lại");
+            
+            // foundUserId = creator (người tạo = người nhặt)
             if (updatedItem.getFoundUserId() == null || updatedItem.getFoundUserId() != creatorId) {
-                updatedItem.setFoundUserId(creatorId);  // Người tạo là người nhặt
+                updatedItem.setFoundUserId(creatorId);
                 needsFix = true;
+                android.util.Log.d("QRFragment", "Fix: Set foundUserId = " + creatorId);
             }
+            
+            // lostUserId = scanner (người quét = người mất ban đầu - nếu chưa có)
+            if (updatedItem.getLostUserId() == null) {
+                updatedItem.setLostUserId(scannerId);
+                needsFix = true;
+                android.util.Log.d("QRFragment", "Fix: Set lostUserId = " + scannerId);
+            }
+            
+            // returnedUserId = scanner (người quét = người nhận lại)
             if (updatedItem.getReturnedUserId() == null || updatedItem.getReturnedUserId() != scannerId) {
-                updatedItem.setReturnedUserId(scannerId);  // Người quét là người nhận lại
+                updatedItem.setReturnedUserId(scannerId);
                 needsFix = true;
+                android.util.Log.d("QRFragment", "Fix: Set returnedUserId = " + scannerId);
             }
-            // lostUserId phải có sẵn từ trước (người mất ban đầu)
         }
         
         if (needsFix) {
-            android.util.Log.w("QRFragment", "⚠️ Backend didn't set fields correctly - fixing via PUT");
+            android.util.Log.w("QRFragment", "⚠️ Backend didn't set fields correctly - fixing via PUT API");
             updateItemFields(updatedItem);
         } else {
-            android.util.Log.d("QRFragment", "✅ All fields are correct");
+            android.util.Log.d("QRFragment", "✅ All fields are correct, no fix needed");
         }
     }
     
@@ -528,84 +555,81 @@ public class QRFragment extends Fragment {
 
         String token = "Bearer " + prefsManager.getToken();
         long currentUserId = prefsManager.getUserId();
-        long itemCreatorId = item.getUserId(); // Người tạo item (người có QR code)
         
-        android.util.Log.d("QRFragment", "=== KARMA UPDATE (SIMPLE LOGIC) ===");
+        // Lấy cả 3 trường để xác định ai là ai
+        Long lostUserId = item.getLostUserId();         // Người mất đồ
+        Long foundUserId = item.getFoundUserId();       // Người tìm thấy/trả đồ
+        Long returnedUserId = item.getReturnedUserId(); // Người nhận lại đồ
+        
+        android.util.Log.d("QRFragment", "=== KARMA UPDATE (USE ALL 3 FIELDS) ===");
         android.util.Log.d("QRFragment", "Item ID: " + item.getId());
-        android.util.Log.d("QRFragment", "Item Creator (has QR): " + itemCreatorId);
-        android.util.Log.d("QRFragment", "Scanner (scanned QR): " + currentUserId);
+        android.util.Log.d("QRFragment", "lostUserId: " + lostUserId);
+        android.util.Log.d("QRFragment", "foundUserId: " + foundUserId);
+        android.util.Log.d("QRFragment", "returnedUserId: " + returnedUserId);
+        android.util.Log.d("QRFragment", "currentUserId: " + currentUserId);
         
-        // LOGIC ĐơN GIẢN: 
-        // - Người tạo QR (itemCreatorId) = người có đồ → +10 karma
-        // - Người quét QR (currentUserId) = người giúp đỡ → +10 karma
-        
-        if (itemCreatorId == currentUserId) {
-            android.util.Log.w("QRFragment", "Same user - no karma update");
+        // Check nếu thiếu field nào
+        if (lostUserId == null || foundUserId == null || returnedUserId == null) {
+            android.util.Log.e("QRFragment", "❌ ERROR: Missing user IDs after fix!");
+            android.util.Log.e("QRFragment", "lostUserId=" + lostUserId + ", foundUserId=" + foundUserId + ", returnedUserId=" + returnedUserId);
             showSuccessDialog(item);
             return;
         }
         
-        android.util.Log.d("QRFragment", "✅ Updating karma: Creator=" + itemCreatorId + " and Scanner=" + currentUserId);
+        // XÁC ĐỊNH 2 NGƯỜI CẦN UPDATE KARMA:
+        // - Người 1: foundUserId (người tìm thấy/trả đồ) → +10 karma
+        // - Người 2: returnedUserId (người nhận lại đồ) → +10 karma
+        // NOTE: foundUserId và returnedUserId có thể trùng nhau trong một số case
+        //       nhưng logic đúng là phải update cả 2 (nếu trùng thì update 1 lần)
         
-        // Counter to track both API calls
+        java.util.Set<Long> userIdsToUpdate = new java.util.HashSet<>();
+        userIdsToUpdate.add(foundUserId);
+        userIdsToUpdate.add(returnedUserId);
+        
+        android.util.Log.d("QRFragment", "✅ Will update karma for " + userIdsToUpdate.size() + " user(s): " + userIdsToUpdate);
+        
+        // Counter to track API calls
+        final int totalUsers = userIdsToUpdate.size();
         final int[] completedCalls = {0};
         final int[] updatedKarma = {0};
         
-        // 1. Update karma for CREATOR (người có QR code - người có đồ)
-        ApiClient.getUserApi().getUserById(token, itemCreatorId).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
-                                   Response<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    com.fptcampus.lostfoundfptcampus.model.User creatorUser = response.body().getData();
-                    int newKarma = creatorUser.getKarma() + 10;
+        // Update karma cho từng user trong set
+        for (Long userId : userIdsToUpdate) {
+            final long finalUserId = userId;
+            
+            ApiClient.getUserApi().getUserById(token, userId).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
+                                       Response<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                        com.fptcampus.lostfoundfptcampus.model.User user = response.body().getData();
+                        int oldKarma = user.getKarma();
+                        int newKarma = oldKarma + 10;
+                        
+                        // Update via PUT API
+                        user.setKarma(newKarma);
+                        updateUserKarma(user, currentUserId, updatedKarma);
+                        
+                        String role = "";
+                        if (finalUserId == foundUserId) role += "Found";
+                        if (finalUserId == returnedUserId) role += (role.isEmpty() ? "" : "+") + "Returned";
+                        if (finalUserId == lostUserId) role += (role.isEmpty() ? "" : "+") + "Lost";
+                        
+                        android.util.Log.d("QRFragment", "✅ User " + finalUserId + " (" + role + ") karma: " + oldKarma + " → " + newKarma);
+                    }
                     
-                    // Update via PUT API
-                    creatorUser.setKarma(newKarma);
-                    updateUserKarma(creatorUser, currentUserId, updatedKarma);
-                    
-                    android.util.Log.d("QRFragment", "✅ Creator (has QR) karma: " + creatorUser.getKarma() + " → " + newKarma);
+                    completedCalls[0]++;
+                    checkBothUpdatesComplete(completedCalls[0], totalUsers, item, updatedKarma[0]);
                 }
-                
-                completedCalls[0]++;
-                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
-            }
 
-            @Override
-            public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QRFragment", "Error getting creator user: " + t.getMessage());
-                completedCalls[0]++;
-                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
-            }
-        });
-        
-        // 2. Update karma for SCANNER (người quét QR - người giúp đỡ)
-        ApiClient.getUserApi().getUserById(token, currentUserId).enqueue(new Callback<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, 
-                                   Response<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    com.fptcampus.lostfoundfptcampus.model.User scannerUser = response.body().getData();
-                    int newKarma = scannerUser.getKarma() + 10;
-                    
-                    // Update via PUT API
-                    scannerUser.setKarma(newKarma);
-                    updateUserKarma(scannerUser, currentUserId, updatedKarma);
-                    
-                    android.util.Log.d("QRFragment", "✅ Scanner (scanned QR) karma: " + scannerUser.getKarma() + " → " + newKarma);
+                @Override
+                public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
+                    android.util.Log.e("QRFragment", "Error getting user " + finalUserId + ": " + t.getMessage());
+                    completedCalls[0]++;
+                    checkBothUpdatesComplete(completedCalls[0], totalUsers, item, updatedKarma[0]);
                 }
-                
-                completedCalls[0]++;
-                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<com.fptcampus.lostfoundfptcampus.model.User>> call, Throwable t) {
-                android.util.Log.e("QRFragment", "Error getting scanner user: " + t.getMessage());
-                completedCalls[0]++;
-                checkBothUpdatesComplete(completedCalls[0], item, updatedKarma[0]);
-            }
-        });
+            });
+        }
     }
     
     /**
@@ -638,11 +662,12 @@ public class QRFragment extends Fragment {
     }
     
     /**
-     * Check if both karma updates are complete, then show dialog
+     * Check if all karma updates are complete, then show dialog
      */
-    private void checkBothUpdatesComplete(int completedCalls, LostItem item, int currentUserKarma) {
-        if (completedCalls >= 2) {
-            // Both API calls completed
+    private void checkBothUpdatesComplete(int completedCalls, int totalUsers, LostItem item, int currentUserKarma) {
+        if (completedCalls >= totalUsers) {
+            // All API calls completed
+            android.util.Log.d("QRFragment", "✅ All " + totalUsers + " karma updates completed");
             if (currentUserKarma > 0) {
                 showSuccessDialogWithKarma(item, currentUserKarma);
             } else {

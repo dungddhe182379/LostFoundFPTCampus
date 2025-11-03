@@ -16,6 +16,7 @@ import java.util.List;
 public class ItemAdapter extends RecyclerView.Adapter<ItemViewHolder> {
     private List<LostItem> itemList;
     private OnItemClickListener listener;
+    private long currentUserId = -1; // User ID để phân biệt "Đã trả" vs "Đã nhận"
 
     public interface OnItemClickListener {
         void onItemClick(LostItem item);
@@ -23,6 +24,10 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemViewHolder> {
 
     public ItemAdapter() {
         this.itemList = new ArrayList<>();
+    }
+    
+    public void setCurrentUserId(long userId) {
+        this.currentUserId = userId;
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
@@ -56,7 +61,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull ItemViewHolder holder, int position) {
-        holder.bind(itemList.get(position));
+        holder.bind(itemList.get(position), currentUserId);
     }
 
     @Override

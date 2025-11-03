@@ -50,7 +50,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
         }
     }
 
-    public void bind(LostItem item) {
+    public void bind(LostItem item, long currentUserId) {
         this.currentItem = item;
         
         tvItemTitle.setText(item.getTitle());
@@ -65,12 +65,25 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
                     tvItemStatus.setBackgroundColor(Color.parseColor("#F44336")); // Red
                     break;
                 case "found":
-                    tvItemStatus.setText("Đã tìm");
+                    tvItemStatus.setText("Đã nhặt");
                     tvItemStatus.setBackgroundColor(Color.parseColor("#4CAF50")); // Green
                     break;
                 case "returned":
-                    tvItemStatus.setText("Đã trả");
-                    tvItemStatus.setBackgroundColor(Color.parseColor("#2196F3")); // Blue
+                    // PHÂN BIỆT: Đã trả vs Đã nhận
+                    // - Đã trả: foundUserId = currentUser (tôi nhặt và trả cho người khác)
+                    // - Đã nhận: returnedUserId = currentUser (tôi nhận lại đồ của mình)
+                    boolean isGivenBack = (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId);
+                    boolean isReceivedBack = (item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId);
+                    
+                    if (isReceivedBack && !isGivenBack) {
+                        // Tôi là người nhận lại
+                        tvItemStatus.setText("Đã nhận");
+                        tvItemStatus.setBackgroundColor(Color.parseColor("#9C27B0")); // Purple
+                    } else {
+                        // Tôi là người trả (hoặc cả 2)
+                        tvItemStatus.setText("Đã trả");
+                        tvItemStatus.setBackgroundColor(Color.parseColor("#2196F3")); // Blue
+                    }
                     break;
                 default:
                     tvItemStatus.setText(status);

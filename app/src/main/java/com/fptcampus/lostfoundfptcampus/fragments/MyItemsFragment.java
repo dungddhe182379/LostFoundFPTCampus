@@ -80,6 +80,7 @@ public class MyItemsFragment extends Fragment {
 
     private void setupRecyclerView() {
         adapter = new ItemAdapter();
+        adapter.setCurrentUserId(prefsManager.getUserId()); // Set current user ID để phân biệt "Đã trả" vs "Đã nhận"
         adapter.setOnItemClickListener(item -> {
             // Navigate to detail fragment
             if (getActivity() instanceof NavigationHost) {
