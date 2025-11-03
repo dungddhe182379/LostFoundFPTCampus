@@ -27,6 +27,7 @@ import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.ApiClient;
+import com.fptcampus.lostfoundfptcampus.util.ServerTimeSync;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -199,6 +200,9 @@ public class QRGeneratorFragment extends Fragment {
                 if (!isAdded()) return;
                 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    // Sync server time from API response
+                    ServerTimeSync.updateServerTime(response.body().getTimestamp());
+                    
                     List<LostItem> items = response.body().getData();
                     
                     // Filter items created by current user with status "lost" or "found"
@@ -247,6 +251,9 @@ public class QRGeneratorFragment extends Fragment {
                 if (!isAdded()) return;
                 
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    // Sync server time from API response
+                    ServerTimeSync.updateServerTime(response.body().getTimestamp());
+                    
                     preselectedItem = response.body().getData();
                     selectedItem = preselectedItem;
                     
@@ -339,8 +346,15 @@ public class QRGeneratorFragment extends Fragment {
         }
         
         try {
-            // Generate unique token for this QR code
-            currentQrToken = UUID.randomUUID().toString();
+            // Generate token using server time to avoid timezone issues
+            // Format: TOKEN_{serverTimestamp}
+            long serverTime = ServerTimeSync.getServerTime();
+            currentQrToken = "TOKEN_" + serverTime;
+            
+            // Log time info for debugging
+            android.util.Log.d("QRGenerator", "Server time offset: " + 
+                ServerTimeSync.getServerTimeOffsetHours() + " hours");
+            android.util.Log.d("QRGenerator", "Generated token: " + currentQrToken);
             
             // Create QR content (JSON format)
             String qrContent = String.format(
