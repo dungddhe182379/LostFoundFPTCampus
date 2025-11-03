@@ -115,7 +115,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="32dp"
-                    android:hint="       Email"
+                    android:hint="Email"
                     app:startIconDrawable="@android:drawable/ic_dialog_email"
                     app:startIconTint="@color/primary">
 
@@ -135,7 +135,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="       Mật khẩu"
+                    android:hint="Mật khẩu"
                     app:endIconMode="password_toggle"
                     app:startIconDrawable="@android:drawable/ic_lock_lock"
                     app:startIconTint="@color/primary">

@@ -47,9 +47,10 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         setupBottomNavigation();
         setupBackPressedHandler();
         
-        // Load default fragment (Items list)
+        // Load default fragment (Home)
         if (savedInstanceState == null) {
-            navigateToTab(1); // Start with Items tab (index 1)
+            loadHomeFragment();
+            bottomNavigation.setSelectedItemId(R.id.navigation_home);
         }
         
         // Initialize sync service
@@ -80,8 +81,7 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
             int itemId = item.getItemId();
             
             if (itemId == R.id.navigation_home) {
-                // TODO: Navigate to HomeFragment when created
-                showMessage("Home - Coming soon");
+                loadHomeFragment();
                 return true;
             } else if (itemId == R.id.navigation_items) {
                 navigateToItemsList();
@@ -93,13 +93,26 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
                 navigateToMap();
                 return true;
             } else if (itemId == R.id.navigation_profile) {
-                // TODO: Navigate to ProfileFragment when created
-                showMessage("Profile - Coming soon");
+                loadProfileFragment();
                 return true;
             }
             
             return false;
         });
+    }
+
+    private void loadHomeFragment() {
+        Fragment homeFragment = new com.fptcampus.lostfoundfptcampus.fragments.HomeFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, homeFragment)
+                .commit();
+    }
+
+    private void loadProfileFragment() {
+        Fragment profileFragment = new com.fptcampus.lostfoundfptcampus.fragments.ProfileFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, profileFragment)
+                .commit();
     }
 
     private void navigateToItemsList() {

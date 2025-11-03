@@ -86,7 +86,7 @@
                     style="@style/Widget.App.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="       Họ và tên"
+                    android:hint="Họ và tên"
                     app:startIconDrawable="@android:drawable/ic_menu_myplaces"
                     app:startIconTint="@color/primary">
 
@@ -106,7 +106,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="       Email (@fpt.edu.vn)"
+                    android:hint="Email (@fpt.edu.vn)"
                     app:startIconDrawable="@android:drawable/ic_dialog_email"
                     app:startIconTint="@color/primary">
 
@@ -126,7 +126,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="       Mật khẩu (tối thiểu 6 ký tự)"
+                    android:hint="Mật khẩu (tối thiểu 6 ký tự)"
                     app:endIconMode="password_toggle"
                     app:startIconDrawable="@android:drawable/ic_lock_lock"
                     app:startIconTint="@color/primary">
@@ -147,7 +147,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="       Số điện thoại"
+                    android:hint="Số điện thoại"
                     app:startIconDrawable="@android:drawable/stat_sys_phone_call"
                     app:startIconTint="@color/primary">
 
