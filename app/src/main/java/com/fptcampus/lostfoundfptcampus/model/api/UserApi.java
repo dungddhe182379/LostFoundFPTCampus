@@ -31,4 +31,10 @@ public interface UserApi {
     Call<ApiResponse<java.util.List<User>>> getAllUsers(
         @Header("Authorization") String token
     );
+    
+    // Get leaderboard - users sorted by karma points (highest first)
+    @GET("api/lostfound/user")
+    Call<ApiResponse<java.util.List<User>>> getLeaderboard(
+        @Header("Authorization") String token
+    );
 }

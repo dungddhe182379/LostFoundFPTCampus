@@ -46,10 +46,10 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         setupBottomNavigation();
         setupBackPressedHandler();
         
-        // Load default fragment (Home)
+        // Load default fragment (Leaderboard)
         if (savedInstanceState == null) {
-            loadHomeFragment();
-            bottomNavigation.setSelectedItemId(R.id.navigation_home);
+            loadLeaderboardFragment();
+            bottomNavigation.setSelectedItemId(R.id.navigation_leaderboard);
         }
         
         // Initialize sync service
@@ -79,14 +79,14 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         bottomNavigation.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             
-            if (itemId == R.id.navigation_home) {
-                loadHomeFragment();
+            if (itemId == R.id.navigation_leaderboard) {
+                loadLeaderboardFragment();
                 return true;
             } else if (itemId == R.id.navigation_items) {
                 navigateToItemsList();
                 return true;
-            } else if (itemId == R.id.navigation_qr) {
-                navigateToQR();
+            } else if (itemId == R.id.navigation_report) {
+                loadReportFragment();
                 return true;
             } else if (itemId == R.id.navigation_map) {
                 navigateToMap();
@@ -100,10 +100,17 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         });
     }
 
-    private void loadHomeFragment() {
-        Fragment homeFragment = new com.fptcampus.lostfoundfptcampus.fragments.HomeFragment();
+    private void loadLeaderboardFragment() {
+        Fragment leaderboardFragment = new com.fptcampus.lostfoundfptcampus.fragments.LeaderboardFragment();
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragmentContainer, homeFragment)
+                .replace(R.id.fragmentContainer, leaderboardFragment)
+                .commit();
+    }
+    
+    private void loadReportFragment() {
+        Fragment reportFragment = new com.fptcampus.lostfoundfptcampus.fragments.ReportItemFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, reportFragment)
                 .commit();
     }
 

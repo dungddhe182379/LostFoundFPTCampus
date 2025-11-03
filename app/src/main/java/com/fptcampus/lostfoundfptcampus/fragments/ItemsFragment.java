@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -25,6 +26,7 @@ import com.fptcampus.lostfoundfptcampus.util.ApiClient;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.textfield.TextInputEditText;
@@ -51,6 +53,10 @@ public class ItemsFragment extends Fragment {
     private TextInputEditText etSearch;
     private ChipGroup chipGroupDateFilter;
     private Chip chipToday, chipThisWeek, chipThisMonth, chipAll;
+    private MaterialCardView btnToggleSearchFilter;
+    private LinearLayout searchFilterContent;
+    private ImageView ivExpandCollapse;
+    private boolean isSearchFilterExpanded = false;
 
     private ItemAdapter adapter;
     private AppDatabase database;
@@ -105,9 +111,17 @@ public class ItemsFragment extends Fragment {
         chipThisWeek = view.findViewById(R.id.chipThisWeek);
         chipThisMonth = view.findViewById(R.id.chipThisMonth);
         chipAll = view.findViewById(R.id.chipAll);
+        
+        // Collapsible search/filter views
+        btnToggleSearchFilter = view.findViewById(R.id.btnToggleSearchFilter);
+        searchFilterContent = view.findViewById(R.id.searchFilterContent);
+        ivExpandCollapse = view.findViewById(R.id.ivExpandCollapse);
     }
 
     private void bindingAction() {
+        // Toggle Search/Filter button
+        btnToggleSearchFilter.setOnClickListener(v -> toggleSearchFilter());
+        
         fabAdd.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), AddItemActivity.class);
             startActivity(intent);
@@ -159,6 +173,30 @@ public class ItemsFragment extends Fragment {
             }
             applyFilters();
         });
+    }
+
+    private void toggleSearchFilter() {
+        isSearchFilterExpanded = !isSearchFilterExpanded;
+        
+        if (isSearchFilterExpanded) {
+            // Expand with animation
+            searchFilterContent.setVisibility(View.VISIBLE);
+            
+            // Animate arrow rotation
+            ivExpandCollapse.animate()
+                .rotation(180)
+                .setDuration(200)
+                .start();
+        } else {
+            // Collapse with animation
+            searchFilterContent.setVisibility(View.GONE);
+            
+            // Animate arrow rotation
+            ivExpandCollapse.animate()
+                .rotation(0)
+                .setDuration(200)
+                .start();
+        }
     }
 
     private void setupSwipeRefresh() {

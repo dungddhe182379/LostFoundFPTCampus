@@ -88,7 +88,7 @@ public class LeaderboardActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        adapter = new LeaderboardAdapter(userList);
+        adapter = new LeaderboardAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
     }
@@ -317,9 +317,7 @@ public class LeaderboardActivity extends AppCompatActivity {
         }
 
         // Display full list
-        userList.clear();
-        userList.addAll(users);
-        adapter.notifyDataSetChanged();
+        adapter.setUsers(users);
     }
 
     private List<User> generateSampleData() {

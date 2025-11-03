@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.model.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,8 +19,8 @@ import java.util.List;
 public class LeaderboardAdapter extends RecyclerView.Adapter<LeaderboardViewHolder> {
     private final List<User> userList;
 
-    public LeaderboardAdapter(List<User> userList) {
-        this.userList = userList;
+    public LeaderboardAdapter() {
+        this.userList = new ArrayList<>();
     }
 
     @NonNull
@@ -41,7 +42,7 @@ public class LeaderboardAdapter extends RecyclerView.Adapter<LeaderboardViewHold
         return userList.size();
     }
 
-    public void setItems(List<User> users) {
+    public void setUsers(List<User> users) {
         userList.clear();
         userList.addAll(users);
         notifyDataSetChanged();

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/navigation_home"
-        android:icon="@drawable/ic_home"
-        android:title="Trang chủ" />
+        android:id="@+id/navigation_leaderboard"
+        android:icon="@android:drawable/star_big_on"
+        android:title="Xếp hạng" />
     
     <item
         android:id="@+id/navigation_items"
@@ -11,9 +11,9 @@
         android:title="Đồ vật" />
     
     <item
-        android:id="@+id/navigation_qr"
-        android:icon="@drawable/ic_qr_code"
-        android:title="QR Code" />
+        android:id="@+id/navigation_report"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="Báo cáo" />
     
     <item
         android:id="@+id/navigation_map"
