@@ -1,6 +1,5 @@
 package com.fptcampus.lostfoundfptcampus.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,7 +16,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.fptcampus.lostfoundfptcampus.R;
-import com.fptcampus.lostfoundfptcampus.controller.AddItemActivity;
 import com.fptcampus.lostfoundfptcampus.controller.adapter.ItemAdapter;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
@@ -123,8 +121,11 @@ public class ItemsFragment extends Fragment {
         btnToggleSearchFilter.setOnClickListener(v -> toggleSearchFilter());
         
         fabAdd.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), AddItemActivity.class);
-            startActivity(intent);
+            // Navigate to ReportItemFragment instead of Activity
+            if (navigationHost != null) {
+                ReportItemFragment reportFragment = new ReportItemFragment();
+                navigationHost.navigateTo(reportFragment, true);
+            }
         });
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
