@@ -379,6 +379,23 @@ public class ReportItemFragment extends Fragment {
         
         // Create item request object
         CreateItemRequest request = new CreateItemRequest();
+        
+        // Set userId and role-specific fields based on status
+        long currentUserId = prefsManager.getUserId();
+        request.setUserId(currentUserId); // ✅ Set userId from current logged-in user
+        
+        // Set lostUserId or foundUserId based on report type
+        if ("lost".equals(reportType)) {
+            // If reporting LOST item -> user is the one who LOST it
+            request.setLostUserId(currentUserId);
+            request.setFoundUserId(null);
+        } else if ("found".equals(reportType)) {
+            // If reporting FOUND item -> user is the one who FOUND it
+            request.setFoundUserId(currentUserId);
+            request.setLostUserId(null);
+        }
+        request.setReturnedUserId(null); // New items are never returned yet
+        
         request.setTitle(title);
         request.setDescription(description);
         request.setCategory(category);

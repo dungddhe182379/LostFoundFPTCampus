@@ -225,7 +225,7 @@ public class AddItemActivity extends AppCompatActivity {
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                         LostItem serverItem = apiResponse.getData();
                         
-                        // Replace local item with server item
+                        // không phải hiện tạiReplace local item with server item
                         executorService.execute(() -> {
                             // Delete temporary local item
                             database.lostItemDao().delete(item);

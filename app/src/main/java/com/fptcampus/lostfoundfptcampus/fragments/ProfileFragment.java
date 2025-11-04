@@ -16,8 +16,10 @@ import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.model.database.AppDatabase;
 import com.fptcampus.lostfoundfptcampus.navigation.NavigationHost;
 import com.fptcampus.lostfoundfptcampus.util.SharedPreferencesManager;
+import com.fptcampus.lostfoundfptcampus.util.NetworkUtil;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import android.widget.Toast;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
