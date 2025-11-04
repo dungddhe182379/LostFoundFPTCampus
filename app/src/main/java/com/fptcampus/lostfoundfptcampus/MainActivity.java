@@ -88,6 +88,9 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
             } else if (itemId == R.id.navigation_home) {
                 loadHomeFragment();
                 return true;
+            } else if (itemId == R.id.navigation_qr) {
+                loadQRFragment();
+                return true;
             } else if (itemId == R.id.navigation_map) {
                 navigateToMap();
                 return true;

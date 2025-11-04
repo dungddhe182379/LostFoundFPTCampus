@@ -17,6 +17,12 @@
         android:icon="@drawable/ic_home"
         android:title="Trang chủ" />
     
+    <!-- QR Scanner -->
+    <item
+        android:id="@+id/navigation_qr"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:title="Quét QR" />
+    
     <!-- Right side items -->
     <item
         android:id="@+id/navigation_map"
