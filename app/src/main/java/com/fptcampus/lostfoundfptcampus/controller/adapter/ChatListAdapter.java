@@ -25,6 +25,7 @@ import java.util.Locale;
 public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatViewHolder> {
     private List<UserChat> chats;
     private OnChatClickListener listener;
+    private OnItemIdClickListener itemIdClickListener;
 
     public ChatListAdapter() {
         this.chats = new ArrayList<>();
@@ -37,6 +38,10 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
     public void setOnChatClickListener(OnChatClickListener listener) {
         this.listener = listener;
+    }
+    
+    public void setOnItemIdClickListener(OnItemIdClickListener listener) {
+        this.itemIdClickListener = listener;
     }
 
     @NonNull
@@ -107,6 +112,13 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                     listener.onChatClick(chat);
                 }
             });
+            
+            // Item ID chip click listener
+            itemIdChip.setOnClickListener(v -> {
+                if (itemIdClickListener != null) {
+                    itemIdClickListener.onItemIdClick(chat.getItemId());
+                }
+            });
         }
 
         private String formatTime(long timestamp) {
@@ -137,5 +149,9 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
     public interface OnChatClickListener {
         void onChatClick(UserChat chat);
+    }
+    
+    public interface OnItemIdClickListener {
+        void onItemIdClick(long itemId);
     }
 }

@@ -78,6 +78,15 @@ public class ChatListFragment extends Fragment {
             intent.putExtra("isAnonymous", chat.isAnonymous());
             startActivity(intent);
         });
+        
+        adapter.setOnItemIdClickListener(itemId -> {
+            // Navigate to DetailItemFragment
+            if (getActivity() instanceof com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) {
+                DetailItemFragment detailFragment = DetailItemFragment.newInstanceById(itemId);
+                ((com.fptcampus.lostfoundfptcampus.navigation.NavigationHost) getActivity())
+                    .navigateTo(detailFragment, true);
+            }
+        });
     }
 
     private void loadChats() {

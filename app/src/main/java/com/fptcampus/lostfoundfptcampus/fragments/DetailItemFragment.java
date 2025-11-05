@@ -30,7 +30,7 @@ import java.util.Locale;
 public class DetailItemFragment extends Fragment {
     private MaterialToolbar toolbar;
     private ImageView ivItemImage;
-    private TextView tvStatus, tvTitle, tvCategory, tvDescription;
+    private TextView tvStatus, tvTitle, tvItemId, tvCategory, tvDescription;
     private TextView tvLocation, tvUserName, tvCreatedAt;
     private MaterialButton btnViewOnMap, btnGenerateQr, btnContact, btnUpdate;
 
@@ -91,6 +91,7 @@ public class DetailItemFragment extends Fragment {
         ivItemImage = view.findViewById(R.id.ivItemImage);
         tvStatus = view.findViewById(R.id.tvStatus);
         tvTitle = view.findViewById(R.id.tvTitle);
+        tvItemId = view.findViewById(R.id.tvItemId);
         tvCategory = view.findViewById(R.id.tvCategory);
         tvDescription = view.findViewById(R.id.tvDescription);
         tvLocation = view.findViewById(R.id.tvLocation);
@@ -221,6 +222,7 @@ public class DetailItemFragment extends Fragment {
         
         // Display data
         tvTitle.setText(title);
+        tvItemId.setText("#" + currentItem.getId());
         tvDescription.setText(description != null && !description.isEmpty() ? description : "Không có mô tả");
         tvCategory.setText(getCategoryName(category));
         tvLocation.setText(String.format(Locale.getDefault(), "Lat: %.4f, Lng: %.4f", latitude, longitude));
