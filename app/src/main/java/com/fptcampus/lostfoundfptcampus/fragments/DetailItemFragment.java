@@ -151,6 +151,9 @@ public class DetailItemFragment extends Fragment {
         currentItem.setLatitude(latitude);
         currentItem.setLongitude(longitude);
         currentItem.setUserId(itemUserId);
+        if (createdAt > 0) {
+            currentItem.setCreatedAt(new java.util.Date(createdAt));
+        }
 
         displayItemData();
     }
@@ -231,6 +234,14 @@ public class DetailItemFragment extends Fragment {
             btnContact.setVisibility(View.GONE);
         } else {
             btnContact.setVisibility(View.VISIBLE);
+        }
+        
+        // Display created date
+        if (currentItem.getCreatedAt() != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            tvCreatedAt.setText(sdf.format(currentItem.getCreatedAt()));
+        } else {
+            tvCreatedAt.setText("--/--/---- --:--");
         }
     }
 
