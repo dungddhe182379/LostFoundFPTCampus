@@ -91,6 +91,9 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
             } else if (itemId == R.id.navigation_qr) {
                 loadQRFragment();
                 return true;
+            } else if (itemId == R.id.navigation_chat) {
+                loadChatListFragment();
+                return true;
             } else if (itemId == R.id.navigation_map) {
                 navigateToMap();
                 return true;
@@ -147,6 +150,13 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         Fragment qrFragment = new com.fptcampus.lostfoundfptcampus.fragments.QRFragment();
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, qrFragment)
+                .commit();
+    }
+
+    private void loadChatListFragment() {
+        Fragment chatListFragment = new com.fptcampus.lostfoundfptcampus.fragments.ChatListFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, chatListFragment)
                 .commit();
     }
 

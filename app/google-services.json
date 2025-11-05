@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "412311568090",
+    "project_id": "lost-and-found-fpt-campus",
+    "storage_bucket": "lost-and-found-fpt-campus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:412311568090:android:8271e712b7c5f02bf72fe3",
+        "android_client_info": {
+          "package_name": "com.fptcampus.lostfoundfptcampus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADz4oIYt8VJUFyWyQOHv0iLpvkyp55y1g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

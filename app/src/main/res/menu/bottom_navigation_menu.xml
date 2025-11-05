@@ -23,6 +23,12 @@
         android:icon="@android:drawable/ic_menu_camera"
         android:title="Quét QR" />
     
+    <!-- Chat -->
+    <item
+        android:id="@+id/navigation_chat"
+        android:icon="@drawable/ic_chat"
+        android:title="Tin nhắn" />
+    
     <!-- Right side items -->
     <item
         android:id="@+id/navigation_map"
