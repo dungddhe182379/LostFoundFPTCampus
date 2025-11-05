@@ -3,9 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
-    <!-- Sent message (right side) -->
+    <!-- Sent message (right side) - Messenger Blue -->
     <LinearLayout
         android:id="@+id/sentLayout"
         android:layout_width="wrap_content"
@@ -14,39 +17,36 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <com.google.android.material.card.MaterialCardView
+        <TextView
+            android:id="@+id/sentMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimary">
-
-            <TextView
-                android:id="@+id/sentMessage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:maxWidth="280dp"
-                android:padding="12dp"
-                android:textSize="14sp"
-                android:textColor="?attr/colorOnPrimary"
-                android:text="Tin nhắn gửi đi" />
-
-        </com.google.android.material.card.MaterialCardView>
+            android:maxWidth="260dp"
+            android:minWidth="60dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="@drawable/bg_message_sent"
+            android:textSize="15sp"
+            android:textColor="@color/chat_text_sent"
+            android:text="Tin nhắn gửi đi" />
 
         <TextView
             android:id="@+id/sentTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="4dp"
             android:textSize="11sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/text_secondary"
             android:text="14:32" />
 
     </LinearLayout>
 
-    <!-- Received message (left side) -->
+    <!-- Received message (left side) - Light Gray -->
     <LinearLayout
         android:id="@+id/receivedLayout"
         android:layout_width="wrap_content"
@@ -59,40 +59,38 @@
             android:id="@+id/senderName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="2dp"
+            android:layout_marginBottom="4dp"
+            android:layout_marginStart="4dp"
             android:textSize="12sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
+            android:textColor="@color/text_secondary"
             android:text="Nguyễn Văn A" />
 
-        <com.google.android.material.card.MaterialCardView
+        <TextView
+            android:id="@+id/receivedMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant">
-
-            <TextView
-                android:id="@+id/receivedMessage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:maxWidth="280dp"
-                android:padding="12dp"
-                android:textSize="14sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:text="Tin nhắn nhận được" />
-
-        </com.google.android.material.card.MaterialCardView>
+            android:maxWidth="260dp"
+            android:minWidth="60dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="@drawable/bg_message_received"
+            android:textSize="15sp"
+            android:textColor="@color/chat_text_received"
+            android:text="Tin nhắn nhận được" />
 
         <TextView
             android:id="@+id/receivedTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="4dp"
             android:textSize="11sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/text_secondary"
             android:text="14:30" />
 
     </LinearLayout>

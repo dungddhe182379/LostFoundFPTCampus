@@ -1,6 +1,6 @@
 package com.fptcampus.lostfoundfptcampus.controller.adapter;
 
-import android.view.Gravity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.model.Message;
-import com.google.android.material.card.MaterialCardView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -83,6 +82,12 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
 
         public void bind(Message message, long currentUserId) {
             boolean isSentByMe = message.getSenderId() == currentUserId;
+            
+            // Debug log
+            Log.d("MessageAdapter", "Message: " + message.getMessage() + 
+                  " | SenderId: " + message.getSenderId() + 
+                  " | CurrentUserId: " + currentUserId + 
+                  " | IsSentByMe: " + isSentByMe);
 
             if (isSentByMe) {
                 // Show sent layout, hide received

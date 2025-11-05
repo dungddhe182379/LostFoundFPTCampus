@@ -183,6 +183,8 @@ public class FirebaseChatManager {
                     for (DataSnapshot child : snapshot.getChildren()) {
                         UserChat chat = child.getValue(UserChat.class);
                         if (chat != null) {
+                            // Set chatId from the key of the snapshot
+                            chat.setChatId(child.getKey());
                             chats.add(chat);
                         }
                     }
@@ -228,6 +230,11 @@ public class FirebaseChatManager {
      * Mark messages as read
      */
     public void markMessagesAsRead(String chatId, long userId) {
+        // Validate chatId
+        if (chatId == null || chatId.isEmpty()) {
+            return;
+        }
+        
         // Reset unread count
         userChatsRef.child(String.valueOf(userId)).child(chatId)
             .child("unreadCount").setValue(0);

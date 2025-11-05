@@ -31,7 +31,7 @@ public class HomeFragment extends Fragment {
     
     private TextView tvWelcome, tvKarma;
     private TextView tvMyLostCount, tvMyFoundCount, tvGivenBackCount, tvReceivedBackCount;
-    private MaterialCardView cardReport, cardViewMap;
+    private MaterialCardView cardReport, cardViewMap, cardQRScan;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -70,6 +70,7 @@ public class HomeFragment extends Fragment {
         tvReceivedBackCount = view.findViewById(R.id.tvReceivedBackCount);  // Đã nhận (tôi mất và nhận lại)
         cardReport = view.findViewById(R.id.cardReport);
         cardViewMap = view.findViewById(R.id.cardViewMap);
+        cardQRScan = view.findViewById(R.id.cardQRScan);
     }
 
     private void setupClickListeners() {
@@ -86,6 +87,14 @@ public class HomeFragment extends Fragment {
             if (navigationHost != null) {
                 MapFragment mapFragment = new MapFragment();
                 navigationHost.navigateTo(mapFragment, true);
+            }
+        });
+
+        cardQRScan.setOnClickListener(v -> {
+            // Navigate to QRFragment
+            if (navigationHost != null) {
+                QRFragment qrFragment = new QRFragment();
+                navigationHost.navigateTo(qrFragment, true);
             }
         });
     }

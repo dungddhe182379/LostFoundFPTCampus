@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
  */
 public class MyItemsFragment extends Fragment {
     private MaterialToolbar toolbar;
+    private com.google.android.material.textfield.TextInputEditText searchEditText;
     private TabLayout tabLayout;
     private SwipeRefreshLayout swipeRefresh;
     private RecyclerView recyclerView;
@@ -45,6 +46,8 @@ public class MyItemsFragment extends Fragment {
     private ExecutorService executorService;
 
     private String currentFilter = "all"; // all, lost, found, returned
+    private String searchQuery = ""; // Search query
+    private List<LostItem> allLoadedItems = new ArrayList<>(); // Cache all items
 
     @Nullable
     @Override
@@ -69,6 +72,7 @@ public class MyItemsFragment extends Fragment {
 
     private void bindingView(View view) {
         toolbar = view.findViewById(R.id.toolbar);
+        searchEditText = view.findViewById(R.id.searchEditText);
         tabLayout = view.findViewById(R.id.tabLayout);
         swipeRefresh = view.findViewById(R.id.swipeRefresh);
         recyclerView = view.findViewById(R.id.recyclerView);
@@ -78,6 +82,21 @@ public class MyItemsFragment extends Fragment {
     private void bindingAction() {
         toolbar.setNavigationOnClickListener(v -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
         swipeRefresh.setOnRefreshListener(this::loadMyItems);
+        
+        // Search functionality
+        searchEditText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchQuery = s.toString().trim();
+                filterAndDisplayItems();
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
     }
 
     private void setupRecyclerView() {
@@ -122,7 +141,7 @@ public class MyItemsFragment extends Fragment {
                         currentFilter = "received_back";  // Đã nhận (tôi mất và nhận lại)
                         break;
                 }
-                loadMyItems();
+                filterAndDisplayItems();
             }
 
             @Override
@@ -175,72 +194,14 @@ public class MyItemsFragment extends Fragment {
                     com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<java.util.List<LostItem>> apiResponse = response.body();
                     
                     if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                        // Success!
-                        List<LostItem> allItems = apiResponse.getData();
-                        List<LostItem> filteredItems = new ArrayList<>();
+                        // Success! Store all items and filter them
+                        allLoadedItems = apiResponse.getData() != null ? apiResponse.getData() : new ArrayList<>();
                         
-                        android.util.Log.d("MyItems", "Received " + allItems.size() + " items from API");
+                        android.util.Log.d("MyItems", "Received " + allLoadedItems.size() + " items from API");
                         
-                        // Filter theo user roles và status - LOGIC CHUẨN
-                        for (LostItem item : allItems) {
-                            boolean shouldAdd = false;
-                            String status = item.getStatus() != null ? item.getStatus().toLowerCase() : "";
-                            
-                            switch (currentFilter) {
-                                case "all":
-                                    // Tất cả items liên quan (lostUserId hoặc foundUserId = tôi)
-                                    shouldAdd = (item.getLostUserId() != null && item.getLostUserId() == currentUserId) ||
-                                                (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId);
-                                    break;
-                                    
-                                case "lost":
-                                    // Đã mất = lostUserId=tôi VÀ status="lost"
-                                    shouldAdd = "lost".equals(status) && 
-                                                item.getLostUserId() != null && 
-                                                item.getLostUserId() == currentUserId;
-                                    break;
-                                    
-                                case "found":
-                                    // Đã nhặt = foundUserId=tôi VÀ status="found"
-                                    shouldAdd = "found".equals(status) && 
-                                                item.getFoundUserId() != null && 
-                                                item.getFoundUserId() == currentUserId;
-                                    break;
-                                    
-                                case "given_back":
-                                    // Đã trả = foundUserId=tôi VÀ status="returned" (tôi nhặt và đã trả cho chủ)
-                                    shouldAdd = "returned".equals(status) && 
-                                                item.getFoundUserId() != null && 
-                                                item.getFoundUserId() == currentUserId;
-                                    break;
-                                    
-                                case "received_back":
-                                    // Đã nhận = lostUserId=tôi VÀ returnedUserId=tôi VÀ status="returned" (tôi mất và đã nhận lại)
-                                    shouldAdd = "returned".equals(status) && 
-                                                item.getLostUserId() != null && item.getLostUserId() == currentUserId &&
-                                                item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId;
-                                    break;
-                            }
-                            
-                            if (shouldAdd) {
-                                filteredItems.add(item);
-                            }
-                        }
-                        
-                        android.util.Log.d("MyItems", "Filtered to " + filteredItems.size() + " items");
-                        
+                        // Filter and display
                         if (isAdded() && getActivity() != null) {
-                            requireActivity().runOnUiThread(() -> {
-                                if (filteredItems.isEmpty()) {
-                                    tvEmptyState.setVisibility(View.VISIBLE);
-                                    recyclerView.setVisibility(View.GONE);
-                                    updateEmptyStateMessage();
-                                } else {
-                                    tvEmptyState.setVisibility(View.GONE);
-                                    recyclerView.setVisibility(View.VISIBLE);
-                                    adapter.setItems(filteredItems);
-                                }
-                            });
+                            requireActivity().runOnUiThread(() -> filterAndDisplayItems());
                         }
                     } else {
                         // API returned error
@@ -288,6 +249,79 @@ public class MyItemsFragment extends Fragment {
                 }
             }
         });
+    }
+    
+    /**
+     * Filter items by tab filter AND search query
+     */
+    private void filterAndDisplayItems() {
+        long currentUserId = prefsManager.getUserId();
+        List<LostItem> filteredItems = new ArrayList<>();
+        
+        for (LostItem item : allLoadedItems) {
+            // First: Filter by tab (user role & status)
+            boolean matchesTab = false;
+            String status = item.getStatus() != null ? item.getStatus().toLowerCase() : "";
+            
+            switch (currentFilter) {
+                case "all":
+                    matchesTab = (item.getLostUserId() != null && item.getLostUserId() == currentUserId) ||
+                                 (item.getFoundUserId() != null && item.getFoundUserId() == currentUserId);
+                    break;
+                case "lost":
+                    matchesTab = "lost".equals(status) && 
+                                 item.getLostUserId() != null && 
+                                 item.getLostUserId() == currentUserId;
+                    break;
+                case "found":
+                    matchesTab = "found".equals(status) && 
+                                 item.getFoundUserId() != null && 
+                                 item.getFoundUserId() == currentUserId;
+                    break;
+                case "given_back":
+                    matchesTab = "returned".equals(status) && 
+                                 item.getFoundUserId() != null && 
+                                 item.getFoundUserId() == currentUserId;
+                    break;
+                case "received_back":
+                    matchesTab = "returned".equals(status) && 
+                                 item.getLostUserId() != null && item.getLostUserId() == currentUserId &&
+                                 item.getReturnedUserId() != null && item.getReturnedUserId() == currentUserId;
+                    break;
+            }
+            
+            if (!matchesTab) continue;
+            
+            // Second: Filter by search query (title, description, or ID)
+            if (!searchQuery.isEmpty()) {
+                String query = searchQuery.toLowerCase();
+                String title = item.getTitle() != null ? item.getTitle().toLowerCase() : "";
+                String desc = item.getDescription() != null ? item.getDescription().toLowerCase() : "";
+                String itemId = String.valueOf(item.getId());
+                
+                boolean matchesSearch = title.contains(query) || 
+                                        desc.contains(query) || 
+                                        itemId.contains(query) ||
+                                        ("#" + itemId).contains(query);
+                
+                if (!matchesSearch) continue;
+            }
+            
+            filteredItems.add(item);
+        }
+        
+        android.util.Log.d("MyItems", "Filtered to " + filteredItems.size() + " items (filter: " + currentFilter + ", search: '" + searchQuery + "')");
+        
+        // Update UI
+        if (filteredItems.isEmpty()) {
+            tvEmptyState.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+            updateEmptyStateMessage();
+        } else {
+            tvEmptyState.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
+            adapter.setItems(filteredItems);
+        }
     }
 
     private void updateEmptyStateMessage() {

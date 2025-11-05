@@ -88,10 +88,12 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
             } else if (itemId == R.id.navigation_home) {
                 loadHomeFragment();
                 return true;
-            } else if (itemId == R.id.navigation_qr) {
+            } /* QR removed from bottom nav - can be accessed elsewhere
+            else if (itemId == R.id.navigation_qr) {
                 loadQRFragment();
                 return true;
-            } else if (itemId == R.id.navigation_chat) {
+            } */
+            else if (itemId == R.id.navigation_chat) {
                 loadChatListFragment();
                 return true;
             } else if (itemId == R.id.navigation_map) {

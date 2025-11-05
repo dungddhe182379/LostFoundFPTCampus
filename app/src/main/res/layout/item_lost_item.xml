@@ -38,6 +38,16 @@
                 android:textColor="@android:color/black"
                 android:maxLines="2"
                 android:ellipsize="end" />
+            
+            <TextView
+                android:id="@+id/tvItemId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="#123"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvItemDescription"

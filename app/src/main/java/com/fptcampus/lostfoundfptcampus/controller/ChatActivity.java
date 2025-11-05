@@ -50,12 +50,22 @@ public class ChatActivity extends AppCompatActivity {
 
         getIntentData();
         bindViews();
-        setupToolbar();
-        setupRecyclerView();
-
+        
+        // Initialize managers and get current user FIRST
         prefsManager = new SharedPreferencesManager(this);
         chatManager = FirebaseChatManager.getInstance();
         currentUserId = prefsManager.getUserId();
+        
+        // Then setup UI with the correct currentUserId
+        setupToolbar();
+        setupRecyclerView();
+
+        // Validate chatId
+        if (chatId == null || chatId.isEmpty()) {
+            Toast.makeText(this, "Lỗi: Không tìm thấy thông tin chat", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
 
         loadMessages();
         markMessagesAsRead();
@@ -99,7 +109,7 @@ public class ChatActivity extends AppCompatActivity {
     private void loadMessages() {
         chatManager.getMessages(chatId, new FirebaseChatManager.MessagesCallback() {
             @Override
-            public void onMessagesChanged(List<Message> messages) {
+            public void onSuccess(List<Message> messages) {
                 runOnUiThread(() -> {
                     adapter.setMessages(messages);
                     scrollToBottom();
@@ -128,7 +138,7 @@ public class ChatActivity extends AppCompatActivity {
         
         chatManager.sendMessage(chatId, currentUserId, senderName, text, new FirebaseChatManager.MessageCallback() {
             @Override
-            public void onSuccess() {
+            public void onSuccess(Message message) {
                 runOnUiThread(() -> {
                     messageInput.setText("");
                     scrollToBottom();
@@ -167,6 +177,8 @@ public class ChatActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         // Mark messages as read when leaving
-        markMessagesAsRead();
+        if (chatId != null && !chatId.isEmpty()) {
+            markMessagesAsRead();
+        }
     }
 }

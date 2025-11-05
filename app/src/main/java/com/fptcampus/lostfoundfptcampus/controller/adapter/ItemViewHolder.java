@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class ItemViewHolder extends RecyclerView.ViewHolder {
     private ImageView ivItemImage;
     private TextView tvItemTitle;
+    private TextView tvItemId;
     private TextView tvItemDescription;
     private TextView tvItemStatus;
     private TextView tvItemDate;
@@ -35,6 +36,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
     private void bindingView() {
         ivItemImage = itemView.findViewById(R.id.ivItemImage);
         tvItemTitle = itemView.findViewById(R.id.tvItemTitle);
+        tvItemId = itemView.findViewById(R.id.tvItemId);
         tvItemDescription = itemView.findViewById(R.id.tvItemDescription);
         tvItemStatus = itemView.findViewById(R.id.tvItemStatus);
         tvItemDate = itemView.findViewById(R.id.tvItemDate);
@@ -54,6 +56,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
         this.currentItem = item;
         
         tvItemTitle.setText(item.getTitle());
+        tvItemId.setText("#" + item.getId());
         tvItemDescription.setText(item.getDescription());
         
         // Set status with color

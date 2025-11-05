@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -166,6 +167,15 @@ public class DetailItemFragment extends Fragment {
         } else {
             btnGenerateQr.setVisibility(View.VISIBLE);
         }
+        
+        // Ẩn nút "Liên hệ" nếu:
+        // 1. User là chủ nhân của item (không thể tự liên hệ với mình)
+        // 2. Item đã được trả (không cần liên hệ nữa)
+        if (isOwner || isReturned) {
+            btnContact.setVisibility(View.GONE);
+        } else {
+            btnContact.setVisibility(View.VISIBLE);
+        }
 
         // Format date
         if (createdAt > 0) {
@@ -214,7 +224,80 @@ public class DetailItemFragment extends Fragment {
     }
 
     private void onBtnContactClick(View view) {
-        ErrorDialogHelper.showError(requireContext(), "Chức năng đang phát triển", 
-                "Chức năng liên hệ sẽ được cập nhật trong phiên bản tiếp theo");
+        if (currentItem == null) {
+            ErrorDialogHelper.showError(requireContext(), "Lỗi", "Không tìm thấy thông tin đồ vật");
+            return;
+        }
+        
+        long currentUserId = prefsManager.getUserId();
+        long itemUserId = currentItem.getUserId();
+        
+        // Không thể liên hệ với chính mình
+        if (currentUserId == itemUserId) {
+            ErrorDialogHelper.showError(requireContext(), "Thông báo", "Bạn không thể liên hệ với chính mình");
+            return;
+        }
+        
+        // Show dialog to choose: anonymous or public chat
+        showAnonymousDialog();
+    }
+    
+    private void showAnonymousDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Liên hệ")
+            .setMessage("Bạn muốn liên hệ dưới hình thức nào?")
+            .setPositiveButton("Hiển thị tên", (dialog, which) -> createChatAndOpen(false))
+            .setNegativeButton("Ẩn danh", (dialog, which) -> createChatAndOpen(true))
+            .setNeutralButton("Hủy", null)
+            .show();
+    }
+    
+    private void createChatAndOpen(boolean isAnonymous) {
+        if (currentItem == null) return;
+        
+        long currentUserId = prefsManager.getUserId();
+        long itemId = currentItem.getId();
+        String status = currentItem.getStatus() != null ? currentItem.getStatus() : "lost";
+        
+        // Xác định lostUserId và foundUserId
+        long lostUserId, foundUserId;
+        String lostUserName = prefsManager.getUserName();
+        String foundUserName = "Người dùng"; // TODO: Get from API or item data
+        
+        if ("lost".equals(status)) {
+            // Item status = lost -> itemUserId là người mất, currentUser là người nhặt
+            lostUserId = currentItem.getUserId();
+            foundUserId = currentUserId;
+        } else {
+            // Item status = found -> itemUserId là người nhặt, currentUser là người mất
+            lostUserId = currentUserId;
+            foundUserId = currentItem.getUserId();
+        }
+        
+        // Create or get chat
+        com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager chatManager = 
+            com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager.getInstance();
+        
+        chatManager.createChat(itemId, lostUserId, foundUserId, lostUserName, foundUserName, isAnonymous,
+            new com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager.ChatCallback() {
+                @Override
+                public void onSuccess(String chatId) {
+                    // Open chat activity
+                    Intent intent = new Intent(requireContext(), com.fptcampus.lostfoundfptcampus.controller.ChatActivity.class);
+                    intent.putExtra("chatId", chatId);
+                    intent.putExtra("itemId", itemId);
+                    intent.putExtra("otherUserId", currentItem.getUserId());
+                    intent.putExtra("otherUserName", isAnonymous ? "Người dùng ẩn danh" : foundUserName);
+                    intent.putExtra("isAnonymous", isAnonymous);
+                    startActivity(intent);
+                }
+
+                @Override
+                public void onError(String error) {
+                    if (isAdded()) {
+                        Toast.makeText(requireContext(), "Lỗi tạo chat: " + error, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
     }
 }

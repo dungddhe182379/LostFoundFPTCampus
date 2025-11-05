@@ -66,4 +66,11 @@
     <color name="white_alpha_80">#CCFFFFFF</color> <!-- 80% White -->
     <color name="white_alpha_60">#99FFFFFF</color> <!-- 60% White -->
     <color name="white_alpha_40">#66FFFFFF</color> <!-- 40% White -->
+    
+    <!-- Chat/Messenger Colors -->
+    <color name="messenger_blue">#0084FF</color> <!-- Messenger Blue -->
+    <color name="chat_bubble_sent">#0084FF</color> <!-- Sent message bubble -->
+    <color name="chat_bubble_received">#E4E6EB</color> <!-- Received message bubble -->
+    <color name="chat_text_sent">#FFFFFF</color> <!-- Text in sent message -->
+    <color name="chat_text_received">#050505</color> <!-- Text in received message -->
 </resources>
