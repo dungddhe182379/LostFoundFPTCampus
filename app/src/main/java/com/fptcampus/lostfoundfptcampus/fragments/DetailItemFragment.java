@@ -32,7 +32,7 @@ public class DetailItemFragment extends Fragment {
     private ImageView ivItemImage;
     private TextView tvStatus, tvTitle, tvCategory, tvDescription;
     private TextView tvLocation, tvUserName, tvCreatedAt;
-    private MaterialButton btnViewOnMap, btnGenerateQr, btnContact;
+    private MaterialButton btnViewOnMap, btnGenerateQr, btnContact, btnUpdate;
 
     private LostItem currentItem;
     private SharedPreferencesManager prefsManager;
@@ -50,6 +50,16 @@ public class DetailItemFragment extends Fragment {
         args.putDouble("longitude", item.getLongitude() != null ? item.getLongitude() : 0.0);
         args.putLong("userId", item.getUserId());
         args.putLong("createdAt", item.getCreatedAt() != null ? item.getCreatedAt().getTime() : 0);
+        fragment.setArguments(args);
+        return fragment;
+    }
+    
+    // Simpler factory method when only itemId is known (will load from API)
+    public static DetailItemFragment newInstanceById(long itemId) {
+        DetailItemFragment fragment = new DetailItemFragment();
+        Bundle args = new Bundle();
+        args.putLong("itemId", itemId);
+        args.putBoolean("loadFromApi", true);
         fragment.setArguments(args);
         return fragment;
     }
@@ -89,6 +99,7 @@ public class DetailItemFragment extends Fragment {
         btnViewOnMap = view.findViewById(R.id.btnViewOnMap);
         btnGenerateQr = view.findViewById(R.id.btnGenerateQr);
         btnContact = view.findViewById(R.id.btnContact);
+        btnUpdate = view.findViewById(R.id.btnUpdate);
     }
 
     private void bindingAction() {
@@ -96,6 +107,7 @@ public class DetailItemFragment extends Fragment {
         btnViewOnMap.setOnClickListener(this::onBtnViewOnMapClick);
         btnGenerateQr.setOnClickListener(this::onBtnGenerateQrClick);
         btnContact.setOnClickListener(this::onBtnContactClick);
+        btnUpdate.setOnClickListener(this::onBtnUpdateClick);
     }
 
     private void loadItemData() {
@@ -107,6 +119,13 @@ public class DetailItemFragment extends Fragment {
         }
 
         long itemId = args.getLong("itemId", -1);
+        
+        // Check if we need to load from API
+        if (args.getBoolean("loadFromApi", false)) {
+            loadItemFromApi(itemId);
+            return;
+        }
+        
         String title = args.getString("title");
         String description = args.getString("description");
         String category = args.getString("category");
@@ -133,6 +152,39 @@ public class DetailItemFragment extends Fragment {
         currentItem.setLongitude(longitude);
         currentItem.setUserId(itemUserId);
 
+        displayItemData();
+    }
+    
+    private void loadItemFromApi(long itemId) {
+        // TODO: Implement API call to get item details
+        // For now, show a message
+        Toast.makeText(requireContext(), "Đang tải thông tin vật phẩm #" + itemId + "...", Toast.LENGTH_SHORT).show();
+        
+        // Mock data for now - replace with actual API call
+        currentItem = new LostItem();
+        currentItem.setId(itemId);
+        currentItem.setTitle("Đang tải...");
+        currentItem.setDescription("Vui lòng đợi...");
+        currentItem.setCategory("other");
+        currentItem.setStatus("lost");
+        currentItem.setLatitude(0.0);
+        currentItem.setLongitude(0.0);
+        currentItem.setUserId(0);
+        
+        displayItemData();
+    }
+    
+    private void displayItemData() {
+        if (currentItem == null) return;
+        
+        String title = currentItem.getTitle();
+        String description = currentItem.getDescription();
+        String category = currentItem.getCategory();
+        String status = currentItem.getStatus();
+        double latitude = currentItem.getLatitude() != null ? currentItem.getLatitude() : 0;
+        double longitude = currentItem.getLongitude() != null ? currentItem.getLongitude() : 0;
+        long itemUserId = currentItem.getUserId();
+        
         // Display data
         tvTitle.setText(title);
         tvDescription.setText(description != null && !description.isEmpty() ? description : "Không có mô tả");
@@ -155,36 +207,31 @@ public class DetailItemFragment extends Fragment {
                 break;
         }
 
-        // Kiểm tra quyền sở hữu - chỉ hiện nút Generate QR nếu:
-        // 1. User là người tạo item (lost hoặc found)
-        // 2. Item chưa được trả (status != "returned")
+        // Kiểm tra quyền sở hữu
         long currentUserId = prefsManager.getUserId();
         boolean isOwner = (itemUserId != -1 && currentUserId != -1 && itemUserId == currentUserId);
         boolean isReturned = "returned".equals(status);
         
+        // Chỉ hiện nút Generate QR nếu là owner và chưa trả
         if (!isOwner || isReturned) {
             btnGenerateQr.setVisibility(View.GONE);
         } else {
             btnGenerateQr.setVisibility(View.VISIBLE);
         }
         
-        // Ẩn nút "Liên hệ" nếu:
-        // 1. User là chủ nhân của item (không thể tự liên hệ với mình)
-        // 2. Item đã được trả (không cần liên hệ nữa)
+        // Chỉ hiện nút Cập nhật nếu là owner và chưa trả
+        if (!isOwner || isReturned) {
+            btnUpdate.setVisibility(View.GONE);
+        } else {
+            btnUpdate.setVisibility(View.VISIBLE);
+        }
+        
+        // Ẩn nút "Liên hệ" nếu user là chủ nhân hoặc item đã trả
         if (isOwner || isReturned) {
             btnContact.setVisibility(View.GONE);
         } else {
             btnContact.setVisibility(View.VISIBLE);
         }
-
-        // Format date
-        if (createdAt > 0) {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-            tvCreatedAt.setText(sdf.format(createdAt));
-        }
-
-        // TODO: Load user name from API
-        tvUserName.setText("Sinh viên FPT");
     }
 
     private String getCategoryName(String category) {
@@ -346,5 +393,18 @@ public class DetailItemFragment extends Fragment {
         intent.putExtra("otherUserName", isAnonymous ? "Người dùng ẩn danh" : "Người dùng");
         intent.putExtra("isAnonymous", isAnonymous);
         startActivity(intent);
+    }
+    
+    private void onBtnUpdateClick(View view) {
+        if (currentItem == null) {
+            ErrorDialogHelper.showError(requireContext(), "Lỗi", "Không tìm thấy thông tin đồ vật");
+            return;
+        }
+        
+        // Navigate to ReportItemFragment in update mode
+        if (navigationHost != null) {
+            ReportItemFragment updateFragment = ReportItemFragment.newInstanceForUpdate(currentItem);
+            navigationHost.navigateTo(updateFragment, true);
+        }
     }
 }

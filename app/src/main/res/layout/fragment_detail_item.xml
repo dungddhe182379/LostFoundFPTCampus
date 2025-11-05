@@ -276,6 +276,15 @@
                     android:text="📱 Tạo mã QR bàn giao"
                     android:textColor="@color/primary"
                     android:layout_marginBottom="12dp" />
+                    
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUpdate"
+                    style="@style/Widget.App.Button.Secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="✏️ Cập nhật thông tin"
+                    android:textColor="@color/primary"
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnContact"

@@ -1,10 +1,13 @@
 package com.fptcampus.lostfoundfptcampus.controller;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -14,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.fptcampus.lostfoundfptcampus.R;
+import com.fptcampus.lostfoundfptcampus.MainActivity;
 import com.fptcampus.lostfoundfptcampus.controller.adapter.MessageAdapter;
 import com.fptcampus.lostfoundfptcampus.model.Message;
 import com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager;
@@ -95,6 +99,14 @@ public class ChatActivity extends AppCompatActivity {
             getSupportActionBar().setTitle(isAnonymous ? "Người dùng ẩn danh" : otherUserName);
             getSupportActionBar().setSubtitle("Vật phẩm #" + itemId);
         }
+        
+        // Make subtitle clickable to navigate to item detail
+        toolbar.setOnClickListener(v -> {
+            Intent intent = new Intent(ChatActivity.this, MainActivity.class);
+            intent.putExtra("itemId", itemId);
+            intent.putExtra("navigateToDetail", true);
+            startActivity(intent);
+        });
     }
 
     private void setupRecyclerView() {

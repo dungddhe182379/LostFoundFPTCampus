@@ -31,6 +31,7 @@ import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.MainActivity;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 import com.fptcampus.lostfoundfptcampus.model.dto.CreateItemRequest;
+import com.fptcampus.lostfoundfptcampus.model.dto.UpdateItemRequest;
 import com.fptcampus.lostfoundfptcampus.model.api.ApiResponse;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -74,6 +75,26 @@ public class ReportItemFragment extends Fragment {
     private Double selectedLatitude = null;
     private Double selectedLongitude = null;
     
+    // Update mode
+    private boolean isUpdateMode = false;
+    private LostItem itemToUpdate = null;
+    
+    // Factory method for update mode
+    public static ReportItemFragment newInstanceForUpdate(LostItem item) {
+        ReportItemFragment fragment = new ReportItemFragment();
+        Bundle args = new Bundle();
+        args.putBoolean("isUpdateMode", true);
+        args.putLong("itemId", item.getId());
+        args.putString("title", item.getTitle());
+        args.putString("description", item.getDescription());
+        args.putString("category", item.getCategory());
+        args.putString("status", item.getStatus());
+        args.putDouble("latitude", item.getLatitude() != null ? item.getLatitude() : 0.0);
+        args.putDouble("longitude", item.getLongitude() != null ? item.getLongitude() : 0.0);
+        fragment.setArguments(args);
+        return fragment;
+    }
+    
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -88,9 +109,78 @@ public class ReportItemFragment extends Fragment {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
         selectedDate = Calendar.getInstance();
         
+        // Check if we're in update mode
+        Bundle args = getArguments();
+        if (args != null && args.getBoolean("isUpdateMode", false)) {
+            isUpdateMode = true;
+            loadItemToUpdate(args);
+        }
+        
         bindingView(view);
         setupCategorySpinner();
         bindingAction();
+        
+        // If update mode, populate fields
+        if (isUpdateMode && itemToUpdate != null) {
+            populateFieldsForUpdate();
+        }
+    }
+    
+    private void loadItemToUpdate(Bundle args) {
+        itemToUpdate = new LostItem();
+        itemToUpdate.setId(args.getLong("itemId"));
+        itemToUpdate.setTitle(args.getString("title"));
+        itemToUpdate.setDescription(args.getString("description"));
+        itemToUpdate.setCategory(args.getString("category"));
+        itemToUpdate.setStatus(args.getString("status"));
+        itemToUpdate.setLatitude(args.getDouble("latitude", 0.0));
+        itemToUpdate.setLongitude(args.getDouble("longitude", 0.0));
+    }
+    
+    private void populateFieldsForUpdate() {
+        if (itemToUpdate == null) return;
+        
+        // Set title and description
+        etTitle.setText(itemToUpdate.getTitle());
+        etDescription.setText(itemToUpdate.getDescription());
+        
+        // Set category
+        spinnerCategory.setText(getCategoryDisplayName(itemToUpdate.getCategory()), false);
+        
+        // Set type (lost/found)
+        reportType = itemToUpdate.getStatus() != null ? itemToUpdate.getStatus() : "lost";
+        if ("found".equals(reportType)) {
+            chipFound.setChecked(true);
+        } else {
+            chipLost.setChecked(true);
+        }
+        
+        // Set location
+        selectedLatitude = itemToUpdate.getLatitude();
+        selectedLongitude = itemToUpdate.getLongitude();
+        if (selectedLatitude != null && selectedLongitude != null) {
+            etLocation.setText(String.format(Locale.getDefault(), "%.4f, %.4f", 
+                selectedLatitude, selectedLongitude));
+        }
+        
+        // Update button text
+        btnSubmit.setText("💾 Cập nhật");
+        
+        // Disable type selection in update mode
+        chipLost.setEnabled(false);
+        chipFound.setEnabled(false);
+    }
+    
+    private String getCategoryDisplayName(String category) {
+        if (category == null) return "Khác";
+        switch (category) {
+            case "electronics": return "Điện tử";
+            case "books": return "Sách vở";
+            case "clothes": return "Quần áo";
+            case "accessories": return "Phụ kiện";
+            case "documents": return "Giấy tờ";
+            default: return "Khác";
+        }
     }
     
     private void bindingView(View view) {
@@ -341,6 +431,119 @@ public class ReportItemFragment extends Fragment {
     }
     
     private void submitReport() {
+        if (isUpdateMode) {
+            submitUpdate();
+        } else {
+            submitCreate();
+        }
+    }
+    
+    private void submitUpdate() {
+        // Check network FIRST
+        if (!NetworkUtil.isNetworkAvailable(requireContext())) {
+            Toast.makeText(requireContext(), "Không có kết nối mạng. Vui lòng kiểm tra và thử lại.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        // Validate inputs
+        String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+        String description = etDescription.getText() != null ? etDescription.getText().toString().trim() : "";
+        String location = etLocation.getText() != null ? etLocation.getText().toString().trim() : "";
+        String category = spinnerCategory.getText().toString().trim();
+        
+        if (title.isEmpty()) {
+            etTitle.setError("Vui lòng nhập tên đồ vật");
+            etTitle.requestFocus();
+            return;
+        }
+        
+        if (category.isEmpty()) {
+            Toast.makeText(requireContext(), "Vui lòng chọn danh mục", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (description.isEmpty()) {
+            etDescription.setError("Vui lòng nhập mô tả");
+            etDescription.requestFocus();
+            return;
+        }
+        
+        // Create update request
+        UpdateItemRequest request = new UpdateItemRequest();
+        request.setTitle(title);
+        request.setDescription(description);
+        request.setCategory(getCategoryKeyFromDisplay(category));
+        
+        // Set location if changed
+        if (selectedLatitude != null && selectedLongitude != null) {
+            request.setLatitude(selectedLatitude);
+            request.setLongitude(selectedLongitude);
+        }
+        
+        // Image
+        if (selectedImageBase64 != null) {
+            request.setImageUrl(selectedImageBase64);
+        }
+        
+        // Show loading
+        btnSubmit.setEnabled(false);
+        btnSubmit.setText("Đang cập nhật...");
+        
+        // Submit to API
+        String token = prefsManager.getToken();
+        Call<ApiResponse<LostItem>> call = ApiClient.getItemApi().updateItem(
+            "Bearer " + token, 
+            itemToUpdate.getId(), 
+            request
+        );
+        
+        call.enqueue(new Callback<ApiResponse<LostItem>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<LostItem>> call, Response<ApiResponse<LostItem>> response) {
+                btnSubmit.setEnabled(true);
+                btnSubmit.setText("💾 Cập nhật");
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse<LostItem> apiResponse = response.body();
+                    
+                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                        Toast.makeText(requireContext(), "✅ Đã cập nhật thành công!", Toast.LENGTH_SHORT).show();
+                        // Go back
+                        if (getActivity() != null) {
+                            getActivity().getOnBackPressedDispatcher().onBackPressed();
+                        }
+                    } else {
+                        String errorMsg = apiResponse.getError() != null ? apiResponse.getError() : "Không thể cập nhật";
+                        Toast.makeText(requireContext(), "❌ " + errorMsg, Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    String errorMsg = "Lỗi server: " + response.code();
+                    Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                }
+            }
+            
+            @Override
+            public void onFailure(Call<ApiResponse<LostItem>> call, Throwable t) {
+                btnSubmit.setEnabled(true);
+                btnSubmit.setText("💾 Cập nhật");
+                Toast.makeText(requireContext(), "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+    
+    private String getCategoryKeyFromDisplay(String displayName) {
+        if (displayName == null) return "other";
+        switch (displayName) {
+            case "Điện tử": return "electronics";
+            case "Sách vở": return "books";
+            case "Quần áo": return "clothes";
+            case "Phụ kiện": return "accessories";
+            case "Giấy tờ": return "documents";
+            default: return "other";
+        }
+    }
+    
+    private void submitCreate() {
         // Check network FIRST (giống LeaderboardActivity)
         if (!NetworkUtil.isNetworkAvailable(requireContext())) {
             Toast.makeText(requireContext(), "Không có kết nối mạng. Vui lòng kiểm tra và thử lại.", Toast.LENGTH_LONG).show();

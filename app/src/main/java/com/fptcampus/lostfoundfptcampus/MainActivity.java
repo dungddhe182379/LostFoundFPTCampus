@@ -46,6 +46,9 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         setupBottomNavigation();
         setupBackPressedHandler();
         
+        // Check if we need to navigate to detail from intent (e.g., from ChatActivity)
+        handleIntentNavigation();
+        
         // Load default fragment (Home)
         if (savedInstanceState == null) {
             loadHomeFragment();
@@ -55,6 +58,25 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         // Initialize sync service
         syncService = new SyncService(this);
         checkAndSyncOfflineItems();
+    }
+    
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntentNavigation();
+    }
+    
+    private void handleIntentNavigation() {
+        Intent intent = getIntent();
+        if (intent != null && intent.getBooleanExtra("navigateToDetail", false)) {
+            long itemId = intent.getLongExtra("itemId", 0);
+            if (itemId > 0) {
+                navigateToDetailItem(itemId);
+                // Clear the flag so it doesn't trigger again
+                intent.removeExtra("navigateToDetail");
+            }
+        }
     }
     
     private void setupBackPressedHandler() {
@@ -184,6 +206,14 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+    
+    public void navigateToDetailItem(long itemId) {
+        Fragment detailFragment = com.fptcampus.lostfoundfptcampus.fragments.DetailItemFragment.newInstanceById(itemId);
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, detailFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     // NavigationHost implementation
