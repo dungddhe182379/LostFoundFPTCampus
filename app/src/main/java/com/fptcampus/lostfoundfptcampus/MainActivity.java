@@ -47,10 +47,10 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         setupBackPressedHandler();
         
         // Check if we need to navigate to detail from intent (e.g., from ChatActivity)
-        handleIntentNavigation();
+        boolean navigatedToDetail = handleIntentNavigation();
         
-        // Load default fragment (Home)
-        if (savedInstanceState == null) {
+        // Load default fragment (Home) only if not navigating to detail
+        if (savedInstanceState == null && !navigatedToDetail) {
             loadHomeFragment();
             bottomNavigation.setSelectedItemId(R.id.navigation_home);
         }
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
         handleIntentNavigation();
     }
     
-    private void handleIntentNavigation() {
+    private boolean handleIntentNavigation() {
         Intent intent = getIntent();
         if (intent != null && intent.getBooleanExtra("navigateToDetail", false)) {
             long itemId = intent.getLongExtra("itemId", 0);
@@ -75,8 +75,10 @@ public class MainActivity extends AppCompatActivity implements NavigationHost {
                 navigateToDetailItem(itemId);
                 // Clear the flag so it doesn't trigger again
                 intent.removeExtra("navigateToDetail");
+                return true;
             }
         }
+        return false;
     }
     
     private void setupBackPressedHandler() {

@@ -159,22 +159,53 @@ public class DetailItemFragment extends Fragment {
     }
     
     private void loadItemFromApi(long itemId) {
-        // TODO: Implement API call to get item details
-        // For now, show a message
-        Toast.makeText(requireContext(), "Đang tải thông tin vật phẩm #" + itemId + "...", Toast.LENGTH_SHORT).show();
+        if (itemId <= 0) {
+            ErrorDialogHelper.showError(requireContext(), "Lỗi", "ID vật phẩm không hợp lệ",
+                () -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
+            return;
+        }
         
-        // Mock data for now - replace with actual API call
-        currentItem = new LostItem();
-        currentItem.setId(itemId);
-        currentItem.setTitle("Đang tải...");
-        currentItem.setDescription("Vui lòng đợi...");
-        currentItem.setCategory("other");
-        currentItem.setStatus("lost");
-        currentItem.setLatitude(0.0);
-        currentItem.setLongitude(0.0);
-        currentItem.setUserId(0);
-        
-        displayItemData();
+        // Call API to get item details
+        String token = prefsManager.getToken();
+        com.fptcampus.lostfoundfptcampus.util.ApiClient.getItemApi()
+            .getItemById("Bearer " + token, itemId)
+            .enqueue(new retrofit2.Callback<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<LostItem>>() {
+                @Override
+                public void onResponse(
+                    retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<LostItem>> call,
+                    retrofit2.Response<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<LostItem>> response
+                ) {
+                    if (!isAdded()) return;
+                    
+                    if (response.isSuccessful() && response.body() != null) {
+                        com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<LostItem> apiResponse = response.body();
+                        
+                        if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                            currentItem = apiResponse.getData();
+                            requireActivity().runOnUiThread(() -> displayItemData());
+                        } else {
+                            String errorMsg = apiResponse.getError() != null ? apiResponse.getError() : "Không tìm thấy vật phẩm";
+                            ErrorDialogHelper.showError(requireContext(), "Lỗi", errorMsg,
+                                () -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
+                        }
+                    } else {
+                        ErrorDialogHelper.showError(requireContext(), "Lỗi", "Không thể tải thông tin vật phẩm #" + itemId,
+                            () -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
+                    }
+                }
+                
+                @Override
+                public void onFailure(
+                    retrofit2.Call<com.fptcampus.lostfoundfptcampus.model.api.ApiResponse<LostItem>> call,
+                    Throwable t
+                ) {
+                    if (!isAdded()) return;
+                    
+                    ErrorDialogHelper.showError(requireContext(), "Lỗi kết nối", 
+                        "Không thể tải thông tin: " + t.getMessage(),
+                        () -> requireActivity().getOnBackPressedDispatcher().onBackPressed());
+                }
+            });
     }
     
     private void displayItemData() {
