@@ -60,45 +60,45 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
     class ChatViewHolder extends RecyclerView.ViewHolder {
         private final MaterialCardView cardChat;
-        private final TextView tvUserName;
-        private final TextView tvLastMessage;
-        private final TextView tvTime;
-        private final TextView tvUnreadBadge;
-        private final TextView tvItemId;
+        private final TextView userName;
+        private final TextView lastMessage;
+        private final TextView time;
+        private final TextView unreadBadge;
+        private final com.google.android.material.chip.Chip itemIdChip;
 
         public ChatViewHolder(@NonNull View itemView) {
             super(itemView);
-            cardChat = itemView.findViewById(R.id.cardChat);
-            tvUserName = itemView.findViewById(R.id.tvUserName);
-            tvLastMessage = itemView.findViewById(R.id.tvLastMessage);
-            tvTime = itemView.findViewById(R.id.tvTime);
-            tvUnreadBadge = itemView.findViewById(R.id.tvUnreadBadge);
-            tvItemId = itemView.findViewById(R.id.tvItemId);
+            cardChat = (MaterialCardView) itemView;
+            userName = itemView.findViewById(R.id.userName);
+            lastMessage = itemView.findViewById(R.id.lastMessage);
+            time = itemView.findViewById(R.id.time);
+            unreadBadge = itemView.findViewById(R.id.unreadBadge);
+            itemIdChip = itemView.findViewById(R.id.itemIdChip);
         }
 
         public void bind(UserChat chat) {
             // User name (hoặc ẩn danh)
             if (chat.isAnonymous()) {
-                tvUserName.setText("👤 " + chat.getOtherUserName());
+                userName.setText("👤 " + chat.getOtherUserName());
             } else {
-                tvUserName.setText(chat.getOtherUserName());
+                userName.setText(chat.getOtherUserName());
             }
 
             // Last message
-            tvLastMessage.setText(chat.getLastMessage() != null ? chat.getLastMessage() : "Bắt đầu cuộc trò chuyện");
+            lastMessage.setText(chat.getLastMessage() != null ? chat.getLastMessage() : "Bắt đầu cuộc trò chuyện");
 
             // Time
-            tvTime.setText(formatTime(chat.getLastMessageTime()));
+            time.setText(formatTime(chat.getLastMessageTime()));
 
             // Item ID badge
-            tvItemId.setText("Đồ vật #" + chat.getItemId());
+            itemIdChip.setText("Vật phẩm #" + chat.getItemId());
 
             // Unread badge
             if (chat.getUnreadCount() > 0) {
-                tvUnreadBadge.setVisibility(View.VISIBLE);
-                tvUnreadBadge.setText(String.valueOf(Math.min(chat.getUnreadCount(), 99)));
+                unreadBadge.setVisibility(View.VISIBLE);
+                unreadBadge.setText(String.valueOf(Math.min(chat.getUnreadCount(), 99)));
             } else {
-                tvUnreadBadge.setVisibility(View.GONE);
+                unreadBadge.setVisibility(View.GONE);
             }
 
             // Click listener

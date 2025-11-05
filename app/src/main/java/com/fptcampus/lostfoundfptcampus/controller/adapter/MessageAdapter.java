@@ -62,55 +62,44 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     }
 
     static class MessageViewHolder extends RecyclerView.ViewHolder {
-        private final LinearLayout messageContainer;
-        private final MaterialCardView cardMessage;
-        private final TextView tvMessage;
-        private final TextView tvTime;
-        private final TextView tvSenderName;
+        private final LinearLayout sentLayout;
+        private final LinearLayout receivedLayout;
+        private final TextView sentMessage;
+        private final TextView sentTime;
+        private final TextView receivedMessage;
+        private final TextView receivedTime;
+        private final TextView senderName;
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
-            messageContainer = itemView.findViewById(R.id.messageContainer);
-            cardMessage = itemView.findViewById(R.id.cardMessage);
-            tvMessage = itemView.findViewById(R.id.tvMessage);
-            tvTime = itemView.findViewById(R.id.tvTime);
-            tvSenderName = itemView.findViewById(R.id.tvSenderName);
+            sentLayout = itemView.findViewById(R.id.sentLayout);
+            receivedLayout = itemView.findViewById(R.id.receivedLayout);
+            sentMessage = itemView.findViewById(R.id.sentMessage);
+            sentTime = itemView.findViewById(R.id.sentTime);
+            receivedMessage = itemView.findViewById(R.id.receivedMessage);
+            receivedTime = itemView.findViewById(R.id.receivedTime);
+            senderName = itemView.findViewById(R.id.senderName);
         }
 
         public void bind(Message message, long currentUserId) {
             boolean isSentByMe = message.getSenderId() == currentUserId;
 
-            // Message text
-            tvMessage.setText(message.getMessage());
-
-            // Time
-            tvTime.setText(formatTime(message.getTimestamp()));
-
-            // Sender name (only show for received messages)
-            if (!isSentByMe) {
-                tvSenderName.setVisibility(View.VISIBLE);
-                tvSenderName.setText(message.getSenderName());
-            } else {
-                tvSenderName.setVisibility(View.GONE);
-            }
-
-            // Layout alignment
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) cardMessage.getLayoutParams();
             if (isSentByMe) {
-                // Sent message - align right, blue background
-                params.gravity = Gravity.END;
-                cardMessage.setCardBackgroundColor(itemView.getContext().getColor(R.color.primary));
-                tvMessage.setTextColor(itemView.getContext().getColor(android.R.color.white));
-                tvTime.setTextColor(itemView.getContext().getColor(android.R.color.white));
+                // Show sent layout, hide received
+                sentLayout.setVisibility(View.VISIBLE);
+                receivedLayout.setVisibility(View.GONE);
+                
+                sentMessage.setText(message.getMessage());
+                sentTime.setText(formatTime(message.getTimestamp()));
             } else {
-                // Received message - align left, gray background
-                params.gravity = Gravity.START;
-                cardMessage.setCardBackgroundColor(itemView.getContext().getColor(R.color.surface_variant));
-                tvMessage.setTextColor(itemView.getContext().getColor(R.color.text_primary));
-                tvTime.setTextColor(itemView.getContext().getColor(R.color.text_secondary));
-                tvSenderName.setTextColor(itemView.getContext().getColor(R.color.primary));
+                // Show received layout, hide sent
+                sentLayout.setVisibility(View.GONE);
+                receivedLayout.setVisibility(View.VISIBLE);
+                
+                receivedMessage.setText(message.getMessage());
+                receivedTime.setText(formatTime(message.getTimestamp()));
+                senderName.setText(message.getSenderName());
             }
-            cardMessage.setLayoutParams(params);
         }
 
         private String formatTime(long timestamp) {

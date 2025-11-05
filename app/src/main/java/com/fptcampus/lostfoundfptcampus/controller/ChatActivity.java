@@ -121,7 +121,10 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        String senderName = isAnonymous ? "Ẩn danh" : prefsManager.getFullName();
+        String senderName = isAnonymous ? "Ẩn danh" : prefsManager.getUserName();
+        if (senderName == null) {
+            senderName = "User #" + currentUserId;
+        }
         
         chatManager.sendMessage(chatId, currentUserId, senderName, text, new FirebaseChatManager.MessageCallback() {
             @Override
