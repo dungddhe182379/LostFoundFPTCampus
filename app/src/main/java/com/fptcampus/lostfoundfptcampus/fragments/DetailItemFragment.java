@@ -238,8 +238,51 @@ public class DetailItemFragment extends Fragment {
             return;
         }
         
-        // Show dialog to choose: anonymous or public chat
-        showAnonymousDialog();
+        // Check if chat already exists, if yes -> open directly, if no -> ask for anonymous option
+        checkAndOpenChat();
+    }
+    
+    private void checkAndOpenChat() {
+        if (currentItem == null) return;
+        
+        long currentUserId = prefsManager.getUserId();
+        long itemId = currentItem.getId();
+        String status = currentItem.getStatus() != null ? currentItem.getStatus() : "lost";
+        
+        // Xác định lostUserId và foundUserId
+        long lostUserId, foundUserId;
+        
+        if ("lost".equals(status)) {
+            lostUserId = currentItem.getUserId();
+            foundUserId = currentUserId;
+        } else {
+            lostUserId = currentUserId;
+            foundUserId = currentItem.getUserId();
+        }
+        
+        // Generate chatId to check if it exists
+        com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager chatManager = 
+            com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager.getInstance();
+        
+        String chatId = chatManager.generateChatId(itemId, lostUserId, foundUserId);
+        
+        // Check if chat exists in Firebase
+        chatManager.checkChatExists(chatId, new com.fptcampus.lostfoundfptcampus.util.FirebaseChatManager.ChatExistsCallback() {
+            @Override
+            public void onResult(boolean exists) {
+                if (isAdded() && getActivity() != null) {
+                    requireActivity().runOnUiThread(() -> {
+                        if (exists) {
+                            // Chat already exists -> Open directly
+                            openChatActivity(chatId, itemId, currentItem.getUserId(), false);
+                        } else {
+                            // Chat doesn't exist -> Ask for anonymous option
+                            showAnonymousDialog();
+                        }
+                    });
+                }
+            }
+        });
     }
     
     private void showAnonymousDialog() {
@@ -283,13 +326,7 @@ public class DetailItemFragment extends Fragment {
                 @Override
                 public void onSuccess(String chatId) {
                     // Open chat activity
-                    Intent intent = new Intent(requireContext(), com.fptcampus.lostfoundfptcampus.controller.ChatActivity.class);
-                    intent.putExtra("chatId", chatId);
-                    intent.putExtra("itemId", itemId);
-                    intent.putExtra("otherUserId", currentItem.getUserId());
-                    intent.putExtra("otherUserName", isAnonymous ? "Người dùng ẩn danh" : foundUserName);
-                    intent.putExtra("isAnonymous", isAnonymous);
-                    startActivity(intent);
+                    openChatActivity(chatId, itemId, currentItem.getUserId(), isAnonymous);
                 }
 
                 @Override
@@ -299,5 +336,15 @@ public class DetailItemFragment extends Fragment {
                     }
                 }
             });
+    }
+    
+    private void openChatActivity(String chatId, long itemId, long otherUserId, boolean isAnonymous) {
+        Intent intent = new Intent(requireContext(), com.fptcampus.lostfoundfptcampus.controller.ChatActivity.class);
+        intent.putExtra("chatId", chatId);
+        intent.putExtra("itemId", itemId);
+        intent.putExtra("otherUserId", otherUserId);
+        intent.putExtra("otherUserName", isAnonymous ? "Người dùng ẩn danh" : "Người dùng");
+        intent.putExtra("isAnonymous", isAnonymous);
+        startActivity(intent);
     }
 }

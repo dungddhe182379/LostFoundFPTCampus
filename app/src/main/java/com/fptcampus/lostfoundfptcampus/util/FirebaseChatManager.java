@@ -255,11 +255,37 @@ public class FirebaseChatManager {
             public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
+    
+    /**
+     * Check if chat exists
+     */
+    public void checkChatExists(String chatId, ChatExistsCallback callback) {
+        if (chatId == null || chatId.isEmpty()) {
+            callback.onResult(false);
+            return;
+        }
+        
+        chatsRef.child(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                callback.onResult(snapshot.exists());
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                callback.onResult(false);
+            }
+        });
+    }
 
     // Callbacks
     public interface ChatCallback {
         void onSuccess(String chatId);
         void onError(String error);
+    }
+    
+    public interface ChatExistsCallback {
+        void onResult(boolean exists);
     }
 
     public interface MessageCallback {
