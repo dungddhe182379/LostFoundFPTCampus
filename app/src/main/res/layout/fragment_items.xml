@@ -110,7 +110,7 @@
                     android:id="@+id/searchInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="🔍 Tìm kiếm theo tên, mô tả..."
+                    android:hint="🔍 Tìm kiếm theo tên, mô tả, #ID..."
                     app:boxBackgroundMode="outline"
                     app:boxStrokeColor="@color/primary"
                     app:hintTextColor="@color/primary"

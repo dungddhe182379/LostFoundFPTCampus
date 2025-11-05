@@ -355,8 +355,13 @@ public class ItemsFragment extends Fragment {
                 String title = item.getTitle() != null ? item.getTitle().toLowerCase() : "";
                 String description = item.getDescription() != null ? item.getDescription().toLowerCase() : "";
                 String category = item.getCategory() != null ? item.getCategory().toLowerCase() : "";
+                String itemId = String.valueOf(item.getId());
 
-                if (!title.contains(query) && !description.contains(query) && !category.contains(query)) {
+                if (!title.contains(query) && 
+                    !description.contains(query) && 
+                    !category.contains(query) && 
+                    !itemId.contains(query) &&
+                    !("#" + itemId).contains(query)) {
                     continue;
                 }
             }
