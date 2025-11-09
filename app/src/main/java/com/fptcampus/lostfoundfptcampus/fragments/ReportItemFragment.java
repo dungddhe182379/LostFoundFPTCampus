@@ -59,6 +59,9 @@ public class ReportItemFragment extends Fragment {
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 101;
     
+    // ✅ Default image URL - always use this when creating/updating items
+    private static final String DEFAULT_IMAGE_URL = "https://www.shutterstock.com/image-vector/lost-found-icon-clipart-image-260nw-1360434053.jpg";
+    
     private ChipGroup chipGroupReportType;
     private Chip chipLost, chipFound;
     private AutoCompleteTextView spinnerCategory;
@@ -480,10 +483,8 @@ public class ReportItemFragment extends Fragment {
             request.setLongitude(selectedLongitude);
         }
         
-        // Image
-        if (selectedImageBase64 != null) {
-            request.setImageUrl(selectedImageBase64);
-        }
+        // Image - always use default URL
+        request.setImageUrl(DEFAULT_IMAGE_URL);
         
         // Show loading
         btnSubmit.setEnabled(false);
@@ -608,11 +609,8 @@ public class ReportItemFragment extends Fragment {
         request.setLatitude(selectedLatitude != null ? selectedLatitude : 21.0138);
         request.setLongitude(selectedLongitude != null ? selectedLongitude : 105.5253);
         
-        // Image
-        if (selectedImageBase64 != null) {
-            request.setImageUrl(selectedImageBase64);
-            android.util.Log.d("ReportItem", "Image size: " + selectedImageBase64.length() + " characters");
-        }
+        // ✅ Always use default image URL (user can still pick image for preview)
+        request.setImageUrl(DEFAULT_IMAGE_URL);
         
         // Show loading
         btnSubmit.setEnabled(false);
