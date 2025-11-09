@@ -103,6 +103,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
         
         // ✅ Load image from URL using Glide
         if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+            android.util.Log.d("ItemViewHolder", "Loading image: " + item.getImageUrl());
             Glide.with(itemView.getContext())
                 .load(item.getImageUrl())
                 .placeholder(R.drawable.ic_launcher_foreground) // Show placeholder while loading
@@ -111,6 +112,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
                 .centerCrop()
                 .into(ivItemImage);
         } else {
+            android.util.Log.d("ItemViewHolder", "No image URL for item #" + item.getId());
             // No image URL, show placeholder
             ivItemImage.setImageResource(R.drawable.ic_launcher_foreground);
         }

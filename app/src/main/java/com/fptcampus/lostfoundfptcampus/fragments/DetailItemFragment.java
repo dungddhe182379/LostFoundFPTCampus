@@ -48,6 +48,7 @@ public class DetailItemFragment extends Fragment {
         args.putString("description", item.getDescription());
         args.putString("category", item.getCategory());
         args.putString("status", item.getStatus());
+        args.putString("imageUrl", item.getImageUrl()); // ✅ Add imageUrl
         args.putDouble("latitude", item.getLatitude() != null ? item.getLatitude() : 0.0);
         args.putDouble("longitude", item.getLongitude() != null ? item.getLongitude() : 0.0);
         args.putLong("userId", item.getUserId());
@@ -133,6 +134,7 @@ public class DetailItemFragment extends Fragment {
         String description = args.getString("description");
         String category = args.getString("category");
         String status = args.getString("status");
+        String imageUrl = args.getString("imageUrl"); // ✅ Get imageUrl from Bundle
         double latitude = args.getDouble("latitude", 0);
         double longitude = args.getDouble("longitude", 0);
         long createdAt = args.getLong("createdAt", 0);
@@ -151,6 +153,7 @@ public class DetailItemFragment extends Fragment {
         currentItem.setDescription(description);
         currentItem.setCategory(category);
         currentItem.setStatus(status);
+        currentItem.setImageUrl(imageUrl); // ✅ Set imageUrl
         currentItem.setLatitude(latitude);
         currentItem.setLongitude(longitude);
         currentItem.setUserId(itemUserId);
@@ -231,6 +234,7 @@ public class DetailItemFragment extends Fragment {
 
         // ✅ Load image from URL using Glide
         if (currentItem.getImageUrl() != null && !currentItem.getImageUrl().isEmpty()) {
+            android.util.Log.d("DetailItem", "Loading image from URL: " + currentItem.getImageUrl());
             Glide.with(requireContext())
                 .load(currentItem.getImageUrl())
                 .placeholder(R.drawable.ic_launcher_foreground)
@@ -239,6 +243,7 @@ public class DetailItemFragment extends Fragment {
                 .centerCrop()
                 .into(ivItemImage);
         } else {
+            android.util.Log.d("DetailItem", "No image URL, using placeholder");
             ivItemImage.setImageResource(R.drawable.ic_launcher_foreground);
         }
 
