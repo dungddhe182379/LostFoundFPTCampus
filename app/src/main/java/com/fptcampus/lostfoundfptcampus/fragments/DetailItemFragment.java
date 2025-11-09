@@ -13,6 +13,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.controller.QrScanActivity;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
@@ -226,6 +228,19 @@ public class DetailItemFragment extends Fragment {
         tvDescription.setText(description != null && !description.isEmpty() ? description : "Không có mô tả");
         tvCategory.setText(getCategoryName(category));
         tvLocation.setText(String.format(Locale.getDefault(), "Lat: %.4f, Lng: %.4f", latitude, longitude));
+
+        // ✅ Load image from URL using Glide
+        if (currentItem.getImageUrl() != null && !currentItem.getImageUrl().isEmpty()) {
+            Glide.with(requireContext())
+                .load(currentItem.getImageUrl())
+                .placeholder(R.drawable.ic_launcher_foreground)
+                .error(R.drawable.ic_launcher_foreground)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .centerCrop()
+                .into(ivItemImage);
+        } else {
+            ivItemImage.setImageResource(R.drawable.ic_launcher_foreground);
+        }
 
         // Status badge
         switch (status != null ? status : "lost") {

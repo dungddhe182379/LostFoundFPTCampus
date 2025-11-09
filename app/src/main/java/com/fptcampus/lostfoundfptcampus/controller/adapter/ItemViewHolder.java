@@ -8,6 +8,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.fptcampus.lostfoundfptcampus.R;
 import com.fptcampus.lostfoundfptcampus.model.LostItem;
 
@@ -99,9 +101,19 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
             tvItemDate.setText(getTimeAgo(item.getCreatedAt()));
         }
         
-        // TODO: Load image using Glide or Picasso
-        // For now, just set a placeholder
-        ivItemImage.setImageResource(R.drawable.ic_launcher_foreground);
+        // ✅ Load image from URL using Glide
+        if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+            Glide.with(itemView.getContext())
+                .load(item.getImageUrl())
+                .placeholder(R.drawable.ic_launcher_foreground) // Show placeholder while loading
+                .error(R.drawable.ic_launcher_foreground) // Show error image if loading fails
+                .diskCacheStrategy(DiskCacheStrategy.ALL) // Cache both original & resized image
+                .centerCrop()
+                .into(ivItemImage);
+        } else {
+            // No image URL, show placeholder
+            ivItemImage.setImageResource(R.drawable.ic_launcher_foreground);
+        }
     }
 
     private String getTimeAgo(Date date) {
